@@ -1,92 +1,117 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 
-const MAX_INPUT_BYTES = 10 * 1024 * 1024; // 10 MB before compression
-const AVATAR_SIZE_PX = 256;
+export const MAX_AVATAR_INPUT_BYTES = 10 * 1024 * 1024; // 10 MB before compression
 
-/**
- * Center-crops and resizes an uploaded image file to a crisp 256x256 square Blob
- * in WebP (or JPEG fallback) so profile pictures load fast and stay tiny (~20-40 KB).
- */
-export async function resizeAvatarImage(
-  file: File
-): Promise<{ blob: Blob; contentType: string; ext: string }> {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Please choose a valid image file (JPG, PNG, or WebP).');
-  }
-  if (file.size > MAX_INPUT_BYTES) {
-    throw new Error('Image is too large (max 10 MB).');
-  }
-
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error('Could not decode the selected image.'));
-      image.src = objectUrl;
-    });
-
-    const canvas = document.createElement('canvas');
-    canvas.width = AVATAR_SIZE_PX;
-    canvas.height = AVATAR_SIZE_PX;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Browser canvas is unavailable.');
-    }
-
-    // Center-crop square
-    const minSide = Math.min(img.width, img.height);
-    const sx = (img.width - minSide) / 2;
-    const sy = (img.height - minSide) / 2;
-
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, AVATAR_SIZE_PX, AVATAR_SIZE_PX);
-
-    // Prefer WebP; fall back to JPEG if unsupported
-    let blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob((b) => resolve(b), 'image/webp', 0.85)
-    );
-    let contentType = 'image/webp';
-    let ext = 'webp';
-
-    if (!blob || blob.type !== 'image/webp') {
-      blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.88)
-      );
-      contentType = 'image/jpeg';
-      ext = 'jpg';
-    }
-
-    if (!blob) {
-      throw new Error('Failed to compress profile picture.');
-    }
-
-    return { blob, contentType, ext };
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
+export interface CroppedAvatarResult {
+  blob: Blob;
+  contentType: string;
+  ext: string;
 }
 
 /**
- * Compresses and uploads a roommate's avatar to Supabase Storage (avatars/<authUid>/avatar.webp)
+ * Validates that a chosen file is an image within the size limit.
+ */
+export function validateAvatarFile(file: File): string | null {
+  if (!file.type.startsWith('image/')) {
+    return 'Please choose a valid image file (JPG, PNG, or WebP).';
+  }
+  if (file.size > MAX_AVATAR_INPUT_BYTES) {
+    return 'Image is too large (max 10 MB).';
+  }
+  return null;
+}
+
+/**
+ * Renders the user-adjusted crop (pan, zoom, rotation, aspect ratio) into a crisp
+ * compressed WebP (or JPEG fallback) Blob ready for upload.
+ */
+export async function exportCroppedAvatar(params: {
+  image: HTMLImageElement;
+  cropWidth: number;
+  cropHeight: number;
+  offsetX: number;
+  offsetY: number;
+  zoom: number;
+  rotationDeg: number;
+  maxOutputDim?: number;
+}): Promise<CroppedAvatarResult> {
+  const {
+    image,
+    cropWidth,
+    cropHeight,
+    offsetX,
+    offsetY,
+    zoom,
+    rotationDeg,
+    maxOutputDim = 384,
+  } = params;
+
+  const isRotatedOdd = Math.abs(rotationDeg % 180) === 90;
+  const effW = isRotatedOdd ? image.naturalHeight : image.naturalWidth;
+  const effH = isRotatedOdd ? image.naturalWidth : image.naturalHeight;
+
+  const baseScale = Math.max(cropWidth / effW, cropHeight / effH);
+  const displayScale = baseScale * zoom;
+
+  // Output canvas dimensions matching chosen aspect ratio
+  const exportRatio = maxOutputDim / Math.max(cropWidth, cropHeight);
+  const outW = Math.round(cropWidth * exportRatio);
+  const outH = Math.round(cropHeight * exportRatio);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = outW;
+  canvas.height = outH;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Browser canvas is unavailable.');
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, outW, outH);
+
+  ctx.save();
+  ctx.translate(outW / 2 + offsetX * exportRatio, outH / 2 + offsetY * exportRatio);
+  ctx.rotate((rotationDeg * Math.PI) / 180);
+  ctx.scale(displayScale * exportRatio, displayScale * exportRatio);
+  ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2);
+  ctx.restore();
+
+  let blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob((b) => resolve(b), 'image/webp', 0.88)
+  );
+  let contentType = 'image/webp';
+  let ext = 'webp';
+
+  if (!blob || blob.type !== 'image/webp') {
+    blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), 'image/jpeg', 0.9)
+    );
+    contentType = 'image/jpeg';
+    ext = 'jpg';
+  }
+
+  if (!blob) throw new Error('Failed to export cropped image.');
+
+  return { blob, contentType, ext };
+}
+
+/**
+ * Uploads a pre-cropped Blob to Supabase Storage (avatars/<authUid>/avatar.webp)
  * and returns a cache-busted public URL.
  */
-export async function uploadProfileAvatarFile(
+export async function uploadCroppedAvatarBlob(
   authUserId: string | null | undefined,
-  file: File
+  cropped: CroppedAvatarResult
 ): Promise<{ url?: string; error?: string }> {
   try {
-    const { blob, contentType, ext } = await resizeAvatarImage(file);
-
     if (isSupabaseConfigured && supabase && authUserId) {
-      const storagePath = `${authUserId}/avatar.${ext}`;
+      const storagePath = `${authUserId}/avatar.${cropped.ext}`;
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(storagePath, blob, {
+        .upload(storagePath, cropped.blob, {
           upsert: true,
-          contentType,
+          contentType: cropped.contentType,
           cacheControl: '3600',
         });
 
@@ -98,12 +123,12 @@ export async function uploadProfileAvatarFile(
       return { url: `${data.publicUrl}?v=${Date.now()}` };
     }
 
-    // Local fallback mode: convert small 256x256 blob to data URL
+    // Local fallback mode
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(String(reader.result));
       reader.onerror = () => reject(new Error('Failed to read image data.'));
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(cropped.blob);
     });
     return { url: dataUrl };
   } catch (err: any) {
@@ -121,6 +146,6 @@ export async function deleteStoredAvatarFiles(authUserId: string | null | undefi
       .from('avatars')
       .remove([`${authUserId}/avatar.webp`, `${authUserId}/avatar.jpg`, `${authUserId}/avatar.png`]);
   } catch {
-    // Ignore cleanup errors if file didn't exist
+    // Ignore cleanup errors
   }
 }

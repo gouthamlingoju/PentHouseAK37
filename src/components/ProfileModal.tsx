@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Avatar } from './Avatar';
-import { uploadProfileAvatarFile, deleteStoredAvatarFiles } from '../lib/avatar';
+import { AvatarCropModal } from './AvatarCropModal';
+import {
+  validateAvatarFile,
+  uploadCroppedAvatarBlob,
+  deleteStoredAvatarFiles,
+  CroppedAvatarResult,
+} from '../lib/avatar';
 import {
   X,
   User,
@@ -15,6 +21,7 @@ import {
   Camera,
   Trash2,
   Loader2,
+  Crop,
 } from 'lucide-react';
 
 interface ProfileModalProps {
@@ -43,6 +50,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const [phone, setPhone] = useState(currentUser.phone || '');
   const [color, setColor] = useState(currentUser.color || '#6366f1');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(currentUser.avatar_url || null);
+  const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
+  const [cropSourceIsBlob, setCropSourceIsBlob] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -71,27 +80,55 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   if (!isOpen) return null;
 
-  const handlePhotoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const closeCropModal = () => {
+    if (cropSourceIsBlob && cropSourceUrl) {
+      URL.revokeObjectURL(cropSourceUrl);
+    }
+    setCropSourceUrl(null);
+    setCropSourceIsBlob(false);
+  };
+
+  const handlePhotoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    // Reset input so re-selecting same file triggers change
     e.target.value = '';
     if (!file) return;
 
+    const validationErr = validateAvatarFile(file);
+    if (validationErr) {
+      setPhotoError(validationErr);
+      return;
+    }
+
+    setPhotoError('');
+    const objUrl = URL.createObjectURL(file);
+    setCropSourceUrl(objUrl);
+    setCropSourceIsBlob(true);
+  };
+
+  const handleAdjustExistingPhoto = () => {
+    if (!avatarUrl) return;
+    setPhotoError('');
+    setCropSourceUrl(avatarUrl);
+    setCropSourceIsBlob(false);
+  };
+
+  const handleApplyCrop = async (cropped: CroppedAvatarResult) => {
     setPhotoError('');
     setUploadingPhoto(true);
-
     const authUid = session?.user?.id || currentUser.auth_user_id;
-    const res = await uploadProfileAvatarFile(authUid, file);
+    const res = await uploadCroppedAvatarBlob(authUid, cropped);
 
     if (res.error || !res.url) {
       setPhotoError(res.error || 'Failed to upload photo.');
       setUploadingPhoto(false);
+      closeCropModal();
       return;
     }
 
     setAvatarUrl(res.url);
     await updateProfile(currentUser.id, { avatar_url: res.url });
     setUploadingPhoto(false);
+    closeCropModal();
   };
 
   const handleRemovePhoto = async () => {
@@ -236,17 +273,28 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="text-xs font-bold text-slate-200">Profile Picture</div>
                 <p className="text-[11px] text-slate-400 leading-snug">
-                  Auto-cropped & compressed to 256×256 WebP in Supabase Storage.
+                  Pick a photo to crop, zoom, rotate, and set aspect ratio before saving.
                 </p>
-                <div className="flex items-center gap-2 pt-0.5">
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <button
                     type="button"
                     disabled={uploadingPhoto}
                     onClick={() => fileInputRef.current?.click()}
                     className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all disabled:opacity-50"
                   >
-                    {uploadingPhoto ? 'Uploading...' : avatarUrl ? 'Change Photo' : 'Upload Photo'}
+                    {uploadingPhoto ? 'Uploading...' : avatarUrl ? 'Change' : 'Upload Photo'}
                   </button>
+                  {avatarUrl && (
+                    <button
+                      type="button"
+                      disabled={uploadingPhoto}
+                      onClick={handleAdjustExistingPhoto}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-semibold flex items-center gap-1 transition-all disabled:opacity-50"
+                    >
+                      <Crop className="w-3 h-3 text-indigo-400" />
+                      <span>Adjust</span>
+                    </button>
+                  )}
                   {avatarUrl && (
                     <button
                       type="button"
@@ -432,6 +480,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           </form>
         )}
       </div>
+
+      {/* Interactive Crop, Zoom, Rotate & Aspect Ratio Editor */}
+      <AvatarCropModal
+        isOpen={Boolean(cropSourceUrl)}
+        imageSrc={cropSourceUrl}
+        onCancel={closeCropModal}
+        onApply={handleApplyCrop}
+      />
     </div>
   );
 };
