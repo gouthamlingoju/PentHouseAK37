@@ -1,0 +1,19 @@
+# Dependencies
+node_modules
+
+# Production build
+dist
+dist-ssr
+
+# Local env files (never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Editor & OS files
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea
+supabase/.temp
