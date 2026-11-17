@@ -23,8 +23,8 @@ interface ExpensesPageProps {
 
 const CATEGORIES: ('All' | ExpenseCategory)[] = [
   'All',
-  'Rent',
-  'Groceries',
+  'Fixed',
+  'Grocery',
   'Food',
   'Utilities',
   'Personal',
@@ -76,9 +76,9 @@ export const ExpensesPage: React.FC<ExpensesPageProps> = ({ onOpenExpenseModal }
 
   const getCategoryBadge = (cat: ExpenseCategory) => {
     switch (cat) {
-      case 'Rent':
+      case 'Fixed':
         return 'bg-purple-500/15 text-purple-300 border-purple-500/30';
-      case 'Groceries':
+      case 'Grocery':
         return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30';
       case 'Food':
         return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
@@ -111,7 +111,7 @@ export const ExpensesPage: React.FC<ExpensesPageProps> = ({ onOpenExpenseModal }
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Log New Expense</span>
+            <span>Log Transaction</span>
           </button>
         )}
       </div>

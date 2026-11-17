@@ -1,7 +1,7 @@
 export type SplitMode = 'equal' | 'capped' | 'excluded' | 'custom';
 export type PaymentType = 'vendor' | 'admin_treasury';
 export type SettlementStatus = 'pending' | 'closed' | 'rejected';
-export type ExpenseCategory = 'Rent' | 'Groceries' | 'Food' | 'Utilities' | 'Personal' | 'Other';
+export type ExpenseCategory = 'Fixed' | 'Grocery' | 'Food' | 'Utilities' | 'Personal' | 'Other';
 export type CycleStatus = 'active' | 'closed';
 
 export interface Profile {

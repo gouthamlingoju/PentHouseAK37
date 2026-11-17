@@ -68,7 +68,7 @@ export const PaymentsPage: React.FC<PaymentsPageProps> = ({ onOpenPaymentModal }
             className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span>Log Payment</span>
+            <span>Log Transaction</span>
           </button>
         )}
       </div>

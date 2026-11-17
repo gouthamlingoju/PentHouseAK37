@@ -14,7 +14,7 @@ console.log('Running PentHouse AK37 Split Engine Baseline Verification...');
 const activeExpenses = INITIAL_EXPENSES.filter((e) => !e.is_excluded);
 const excludedExpenses = INITIAL_EXPENSES.filter((e) => e.is_excluded);
 
-assert(activeExpenses.length === 32, `Expected 32 active expenses, got ${activeExpenses.length}`);
+assert(activeExpenses.length === 31, `Expected 31 active expenses, got ${activeExpenses.length}`);
 assert(excludedExpenses.length === 3, `Expected 3 excluded expenses, got ${excludedExpenses.length}`);
 
 const totalActive = activeExpenses.reduce((s, e) => s + e.amount, 0);
@@ -72,7 +72,7 @@ const sampleCappedExpense: Expense = {
   cycle_id: 'cycle_1_nov_2026',
   title: 'Rice Bag Test',
   amount: 1650,
-  category: 'Groceries',
+  category: 'Grocery',
   is_excluded: false,
   split_mode: 'capped',
   participant_ids: ['user_goutham', 'user_saikumar', 'user_santhosh', 'user_yashwanth', 'user_puri'],

@@ -77,7 +77,7 @@ interface AppContextType {
   switchUser: (userId: string) => void;
   selectCycle: (cycleId: string) => void;
   updateProfile: (userId: string, data: Partial<Profile>) => Promise<void>;
-  addExpense: (expense: Omit<Expense, 'id' | 'created_at'>) => Promise<void>;
+  addExpense: (expense: Omit<Expense, 'id' | 'created_at'>, paidByUserId?: string) => Promise<void>;
   updateExpense: (id: string, data: Partial<Expense>) => Promise<void>;
   deleteExpense: (id: string) => Promise<void>;
   addPayment: (payment: Omit<Payment, 'id' | 'created_at'>) => Promise<void>;
@@ -516,19 +516,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('success', 'Profile updated successfully!');
   };
 
-  const addExpense = async (expenseData: Omit<Expense, 'id' | 'created_at'>) => {
+  const addExpense = async (
+    expenseData: Omit<Expense, 'id' | 'created_at'>,
+    paidByUserId?: string
+  ) => {
     if (!isCurrentCycleActive) {
       showToast('error', 'Cannot add expenses to a closed monthly cycle');
       return;
     }
 
+    const nowIso = new Date().toISOString();
     const newId = `exp_${Date.now()}`;
     const newExpense: Expense = {
       ...expenseData,
       id: newId,
-      created_at: new Date().toISOString(),
+      created_at: nowIso,
     };
     const splits = calculateExpenseSplits(newExpense, data.profiles);
+
+    // Automatically create the single linked vendor payment for active expenses
+    const shouldCreatePayment = !newExpense.is_excluded && Boolean(paidByUserId) && newExpense.amount > 0;
+    const autoPayment: Payment | null = shouldCreatePayment
+      ? {
+          id: `pay_${Date.now()}`,
+          cycle_id: newExpense.cycle_id,
+          payer_id: paidByUserId!,
+          amount: newExpense.amount,
+          payment_type: 'vendor',
+          recipient_admin_id: null,
+          linked_expense_id: newExpense.id,
+          vendor_name: newExpense.title,
+          notes: newExpense.notes || newExpense.title,
+          payment_date: nowIso,
+          created_at: nowIso,
+        }
+      : null;
 
     if (isLiveSupabase && supabase) {
       const { error } = await supabase.from('expenses').insert({
@@ -563,14 +585,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         );
       }
 
+      if (autoPayment) {
+        await supabase.from('payments').insert({
+          id: autoPayment.id,
+          cycle_id: autoPayment.cycle_id,
+          payer_id: autoPayment.payer_id,
+          amount: autoPayment.amount,
+          payment_type: autoPayment.payment_type,
+          recipient_admin_id: null,
+          linked_expense_id: autoPayment.linked_expense_id,
+          vendor_name: autoPayment.vendor_name,
+          notes: autoPayment.notes || null,
+          payment_date: autoPayment.payment_date,
+        });
+      }
+
       await refreshData();
-      showToast('success', `Added "${newExpense.title}" (₹${newExpense.amount})`);
+      showToast('success', `Logged "${newExpense.title}" (₹${newExpense.amount})`);
       return;
     }
 
     newExpense.splits = splits;
-    setData((prev) => ({ ...prev, expenses: [newExpense, ...prev.expenses] }));
-    showToast('success', `Added "${newExpense.title}" (₹${newExpense.amount})`);
+    setData((prev) => ({
+      ...prev,
+      expenses: [newExpense, ...prev.expenses],
+      payments: autoPayment ? [autoPayment, ...prev.payments] : prev.payments,
+    }));
+    showToast('success', `Logged "${newExpense.title}" (₹${newExpense.amount})`);
   };
 
   const updateExpense = async (id: string, updates: Partial<Expense>) => {
@@ -643,7 +684,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
+    const exp = data.expenses.find((e) => e.id === id);
+    const linkedPayments = data.payments.filter(
+      (p) => p.linked_expense_id === id && p.payment_type === 'vendor'
+    );
+    const autoLinkedPaymentId =
+      exp && linkedPayments.length === 1 && Math.abs(linkedPayments[0].amount - exp.amount) < 0.01
+        ? linkedPayments[0].id
+        : null;
+
     if (isLiveSupabase && supabase) {
+      if (autoLinkedPaymentId) {
+        await supabase.from('payments').delete().eq('id', autoLinkedPaymentId);
+      }
       const { error } = await supabase.from('expenses').delete().eq('id', id);
       if (error) {
         showToast('error', error.message);
@@ -654,7 +707,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    setData((prev) => ({ ...prev, expenses: prev.expenses.filter((e) => e.id !== id) }));
+    setData((prev) => ({
+      ...prev,
+      expenses: prev.expenses.filter((e) => e.id !== id),
+      payments: autoLinkedPaymentId
+        ? prev.payments.filter((p) => p.id !== autoLinkedPaymentId)
+        : prev.payments,
+    }));
     showToast('info', 'Expense deleted');
   };
 

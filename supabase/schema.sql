@@ -39,7 +39,7 @@ create table if not exists public.expenses (
   cycle_id text not null references public.cycles(id) on delete cascade,
   title text not null,
   amount numeric(10,2) not null check (amount >= 0),
-  category text not null check (category in ('Rent', 'Groceries', 'Food', 'Utilities', 'Personal', 'Other')),
+  category text not null check (category in ('Fixed', 'Grocery', 'Food', 'Utilities', 'Personal', 'Other')),
   is_excluded boolean not null default false,
   split_mode text not null check (split_mode in ('equal', 'capped', 'excluded', 'custom')) default 'equal',
   participant_ids jsonb not null default '[]'::jsonb,

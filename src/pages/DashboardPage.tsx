@@ -16,14 +16,12 @@ import {
 import { PairwiseDebt, Profile } from '../types';
 
 interface DashboardPageProps {
-  onOpenExpenseModal: () => void;
-  onOpenPaymentModal: () => void;
+  onOpenTransactionModal: (defaultTab?: 'expense' | 'admin_transfer') => void;
   onOpenSettlementModal: (debt?: PairwiseDebt, targetUser?: Profile, amount?: number) => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({
-  onOpenExpenseModal,
-  onOpenPaymentModal,
+  onOpenTransactionModal,
   onOpenSettlementModal,
 }) => {
   const {
@@ -80,22 +78,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
         {isCurrentCycleActive && (
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={onOpenExpenseModal}
+              onClick={() => onOpenTransactionModal('expense')}
               className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-1.5 transition-all"
             >
               <Plus className="w-4 h-4" />
-              <span>Log Expense</span>
-            </button>
-            <button
-              onClick={onOpenPaymentModal}
-              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
-            >
-              <Wallet className="w-4 h-4 text-emerald-400" />
-              <span>Log Payment</span>
+              <span>Log Transaction</span>
             </button>
             <button
               onClick={() => onOpenSettlementModal()}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
+              className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all"
             >
               <Handshake className="w-4 h-4" />
               <span>Settle Dues</span>

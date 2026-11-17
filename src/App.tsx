@@ -3,8 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { BottomNav, NavTab } from './components/BottomNav';
 import { ToastContainer } from './components/ToastContainer';
-import { ExpenseModal } from './components/ExpenseModal';
-import { PaymentModal } from './components/PaymentModal';
+import { TransactionModal } from './components/TransactionModal';
 import { SettlementModal } from './components/SettlementModal';
 import { ProfileModal } from './components/ProfileModal';
 import { CreateRoommateModal } from './components/CreateRoommateModal';
@@ -25,9 +24,9 @@ function AppShell() {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
 
   // Modals state
-  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [transactionModalOpen, setTransactionModalOpen] = useState(false);
+  const [transactionDefaultTab, setTransactionDefaultTab] = useState<'expense' | 'admin_transfer'>('expense');
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [settlementModalOpen, setSettlementModalOpen] = useState(false);
   const [settlementPrefill, setSettlementPrefill] = useState<{
     debt?: PairwiseDebt | null;
@@ -70,9 +69,13 @@ function AppShell() {
     );
   }
 
-  const openExpenseModal = (expense?: Expense) => {
+  const openTransactionModal = (
+    defaultTab: 'expense' | 'admin_transfer' = 'expense',
+    expense?: Expense
+  ) => {
     setEditingExpense(expense || null);
-    setExpenseModalOpen(true);
+    setTransactionDefaultTab(defaultTab);
+    setTransactionModalOpen(true);
   };
 
   const openSettlementModal = (
@@ -102,18 +105,21 @@ function AppShell() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
         {activeTab === 'dashboard' && (
           <DashboardPage
-            onOpenExpenseModal={() => openExpenseModal()}
-            onOpenPaymentModal={() => setPaymentModalOpen(true)}
+            onOpenTransactionModal={(tab) => openTransactionModal(tab || 'expense')}
             onOpenSettlementModal={openSettlementModal}
           />
         )}
 
         {activeTab === 'expenses' && (
-          <ExpensesPage onOpenExpenseModal={openExpenseModal} />
+          <ExpensesPage
+            onOpenExpenseModal={(exp) => openTransactionModal('expense', exp)}
+          />
         )}
 
         {activeTab === 'payments' && (
-          <PaymentsPage onOpenPaymentModal={() => setPaymentModalOpen(true)} />
+          <PaymentsPage
+            onOpenPaymentModal={() => openTransactionModal('expense')}
+          />
         )}
 
         {activeTab === 'settlements' && (
@@ -130,19 +136,15 @@ function AppShell() {
         )}
       </main>
 
-      {/* Modals */}
-      <ExpenseModal
-        isOpen={expenseModalOpen}
+      {/* Unified Transaction Modal (Room Expense + Transfer to Admin) */}
+      <TransactionModal
+        isOpen={transactionModalOpen}
         onClose={() => {
-          setExpenseModalOpen(false);
+          setTransactionModalOpen(false);
           setEditingExpense(null);
         }}
         editingExpense={editingExpense}
-      />
-
-      <PaymentModal
-        isOpen={paymentModalOpen}
-        onClose={() => setPaymentModalOpen(false)}
+        defaultTab={transactionDefaultTab}
       />
 
       <SettlementModal
