@@ -49,7 +49,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
               AK<span className="text-amber-400 text-[11px] ml-0.5">37</span>
             </div>
           </div>
-          <div className="min-w-0">
+          <div className="hidden sm:block min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="font-extrabold text-sm sm:text-lg tracking-tight text-white truncate">
                 PentHouse <span className="text-indigo-400 font-medium">AK37</span>
@@ -68,13 +68,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
         </div>
 
         {/* Center: Cycle Switcher */}
-        <div className="flex items-center">
-          <div className="relative">
+        <div className="flex items-center min-w-0 flex-1 sm:flex-initial justify-center">
+          <div className="relative w-full max-w-[190px] sm:w-auto sm:max-w-none">
             <select
               value={selectedCycle?.id || ''}
               onChange={(e) => selectCycle(e.target.value)}
               aria-label="Select Monthly Cycle"
-              className="appearance-none bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl pl-7 sm:pl-8 pr-7 sm:pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer shadow-inner max-w-[155px] sm:max-w-none truncate"
+              className="w-full sm:w-auto appearance-none bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs sm:text-sm font-semibold rounded-xl pl-7 sm:pl-8 pr-7 sm:pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer shadow-inner truncate"
             >
               {cycles.map((c) => (
                 <option key={c.id} value={c.id}>

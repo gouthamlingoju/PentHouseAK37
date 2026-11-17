@@ -96,46 +96,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
       </div>
 
       {/* KPI Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
         {/* Card 1: Total Active Pool */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">Active Pool Expenses</span>
-            <ReceiptIndianRupee className="w-4 h-4 text-indigo-400" />
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 sm:p-4 flex flex-col justify-between min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-1.5 text-slate-400 mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold leading-tight">Active Pool Expenses</span>
+            <ReceiptIndianRupee className="w-4 h-4 text-indigo-400 shrink-0" />
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-white">
+          <div className="min-w-0">
+            <div className="text-base sm:text-xl md:text-2xl font-extrabold font-mono-num tracking-tight text-white truncate">
               {formatINR(totalActiveExpenses)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              {activeExpenses.length} active • {excludedExpenses.length} excluded ({formatINR(totalExcludedAmount, false)})
+            <div className="text-[11px] text-slate-400 mt-1 truncate">
+              {activeExpenses.length} active • {excludedExpenses.length} excl. ({formatINR(totalExcludedAmount, false)})
             </div>
           </div>
         </div>
 
         {/* Card 2: Admin sees Total Vendor Payments; Member sees Their Total Paid */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">
-              {isCurrentUserAdmin ? 'Vendor Payments Logged' : 'Your Total Paid'}
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 sm:p-4 flex flex-col justify-between min-w-0 overflow-hidden">
+          <div className="flex items-center justify-between gap-1.5 text-slate-400 mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold leading-tight">
+              {isCurrentUserAdmin ? 'Vendor Payments' : 'Your Total Paid'}
             </span>
-            <Wallet className="w-4 h-4 text-cyan-400" />
+            <Wallet className="w-4 h-4 text-cyan-400 shrink-0" />
           </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-white">
+          <div className="min-w-0">
+            <div className="text-base sm:text-xl md:text-2xl font-extrabold font-mono-num tracking-tight text-white truncate">
               {formatINR(isCurrentUserAdmin ? totalVendorPayments : currentUserStanding?.totalPayments || 0)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
+            <div className="text-[11px] text-slate-400 mt-1 leading-snug">
               {isCurrentUserAdmin ? (
                 Math.abs(totalVendorPayments - totalActiveExpenses) < 0.01 ? (
-                  <span className="text-emerald-400 font-semibold">✓ 100% Reconciled with Pool</span>
+                  <span className="text-emerald-400 font-semibold">✓ 100% Reconciled</span>
                 ) : (
                   <span className="text-amber-300">
                     Diff: {formatINR(totalVendorPayments - totalActiveExpenses)}
                   </span>
                 )
               ) : (
-                <span>
+                <span className="truncate block">
                   Vendor: {formatINR(currentUserStanding?.totalVendorPaid || 0, false)} • Admin:{' '}
                   {formatINR(currentUserStanding?.totalAdminTreasuryPaid || 0, false)}
                 </span>
@@ -146,32 +146,32 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         {/* Card 3: Admin sees Admin Treasury Held; Member sees Their Consumed Share */}
         {isCurrentUserAdmin ? (
-          <div className="rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-amber-300/80 mb-2">
-              <span className="text-xs font-semibold">Admin Treasury Held</span>
-              <Crown className="w-4 h-4 text-amber-400" />
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-950/15 p-3.5 sm:p-4 flex flex-col justify-between min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1.5 text-amber-300/80 mb-2">
+              <span className="text-[11px] sm:text-xs font-semibold leading-tight">Admin Treasury Held</span>
+              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-amber-300">
+            <div className="min-w-0">
+              <div className="text-base sm:text-xl md:text-2xl font-extrabold font-mono-num tracking-tight text-amber-300 truncate">
                 {formatINR(totalAdminTreasury)}
               </div>
-              <div className="text-[11px] text-slate-400 mt-1">
+              <div className="text-[11px] text-slate-400 mt-1 truncate">
                 Custodian: <strong className="text-amber-200">{activeAdmin?.name}</strong>
               </div>
             </div>
           </div>
         ) : (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
-            <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-semibold">Your Expense Share</span>
-              <Layers className="w-4 h-4 text-indigo-400" />
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 sm:p-4 flex flex-col justify-between min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-1.5 text-slate-400 mb-2">
+              <span className="text-[11px] sm:text-xs font-semibold leading-tight">Your Expense Share</span>
+              <Layers className="w-4 h-4 text-indigo-400 shrink-0" />
             </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-white">
+            <div className="min-w-0">
+              <div className="text-base sm:text-xl md:text-2xl font-extrabold font-mono-num tracking-tight text-white truncate">
                 {formatINR(currentUserStanding?.totalExpenseShare || 0)}
               </div>
-              <div className="text-[11px] text-slate-400 mt-1">
-                Your total consumed share this cycle
+              <div className="text-[11px] text-slate-400 mt-1 truncate">
+                Consumed share this cycle
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
 
         {/* Card 4: Your Net Balance */}
         <div
-          className={`rounded-2xl border p-4 flex flex-col justify-between ${
+          className={`rounded-2xl border p-3.5 sm:p-4 flex flex-col justify-between min-w-0 overflow-hidden ${
             myBalance > 0.01
               ? 'border-emerald-500/30 bg-emerald-950/20'
               : myBalance < -0.01
@@ -187,10 +187,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               : 'border-slate-800 bg-slate-900/60'
           }`}
         >
-          <div className="flex items-center justify-between text-slate-300 mb-2">
-            <span className="text-xs font-semibold">Your Net Balance</span>
+          <div className="flex items-center justify-between gap-1.5 text-slate-300 mb-2">
+            <span className="text-[11px] sm:text-xs font-semibold leading-tight">Your Net Balance</span>
             <TrendingUp
-              className={`w-4 h-4 ${
+              className={`w-4 h-4 shrink-0 ${
                 myBalance > 0.01
                   ? 'text-emerald-400'
                   : myBalance < -0.01
@@ -199,9 +199,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
               }`}
             />
           </div>
-          <div>
+          <div className="min-w-0">
             <div
-              className={`text-xl sm:text-2xl font-extrabold font-mono-num ${
+              className={`text-base sm:text-xl md:text-2xl font-extrabold font-mono-num tracking-tight truncate ${
                 myBalance > 0.01
                   ? 'text-emerald-300'
                   : myBalance < -0.01
@@ -211,12 +211,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             >
               {formatINR(myBalance)}
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
+            <div className="text-[11px] text-slate-400 mt-1 leading-snug">
               {myBalance > 0.01
-                ? 'Roommates owe you money'
+                ? 'Roommates owe you'
                 : myBalance < -0.01
-                ? 'You owe the room pool'
-                : 'You are completely settled'}
+                ? 'You owe the room'
+                : 'Completely settled'}
             </div>
           </div>
         </div>

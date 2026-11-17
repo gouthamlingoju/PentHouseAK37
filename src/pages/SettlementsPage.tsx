@@ -104,14 +104,14 @@ export const SettlementsPage: React.FC<SettlementsPageProps> = ({
               return (
                 <div
                   key={s.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 overflow-hidden"
                 >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm font-bold text-white">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm font-bold text-white">
                       <span>{fromUser?.name}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                       <span>{toUser?.name}</span>
-                      <span className="font-mono-num font-extrabold text-base ml-2">
+                      <span className="font-mono-num font-extrabold text-base ml-1">
                         {formatINR(s.amount)}
                       </span>
                     </div>

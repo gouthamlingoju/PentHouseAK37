@@ -76,16 +76,16 @@ export const StandingCards: React.FC<StandingCardsProps> = ({ onSettleWithUser }
                         </div>
                       )}
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-slate-100">{s.profile.name}</span>
+                        <span className="font-bold text-sm text-slate-100 truncate">{s.profile.name}</span>
                         {isMe && (
-                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-500/40">
+                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.2 rounded bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 shrink-0">
                             YOU
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] text-slate-400 block font-mono">
+                      <span className="text-[11px] text-slate-400 block font-mono truncate">
                         {s.profile.upi_id}
                       </span>
                     </div>

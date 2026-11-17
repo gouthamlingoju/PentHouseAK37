@@ -141,14 +141,14 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
               return (
                 <div
                   key={set.id}
-                  className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3"
+                  className="bg-slate-900/70 border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3 overflow-hidden"
                 >
-                  <div>
-                    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-200">
-                      <span>{fromUser?.name}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
-                      <span>{toUser?.name}</span>
-                      <span className="font-mono-num font-bold text-white ml-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs sm:text-sm font-semibold text-slate-200">
+                      <span className="truncate">{fromUser?.name}</span>
+                      <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span className="truncate">{toUser?.name}</span>
+                      <span className="font-mono-num font-bold text-white ml-1">
                         {formatINR(set.amount)}
                       </span>
                     </div>
@@ -156,7 +156,7 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
                       Waiting for <strong className="text-indigo-300">{counterparty?.name}</strong> to click Confirm & Close.
                     </p>
                   </div>
-                  <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                  <span className="shrink-0 text-[10px] sm:text-[11px] font-bold px-2 py-1 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
                     1/2 Confirmed
                   </span>
                 </div>
@@ -217,29 +217,32 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
               return (
                 <div
                   key={`${debt.fromUser.id}_${debt.toUser.id}_${idx}`}
-                  className={`rounded-xl p-4 border flex flex-col justify-between gap-3 transition-all ${
+                  className={`rounded-xl p-3.5 sm:p-4 border flex flex-col justify-between gap-3 transition-all overflow-hidden ${
                     isInvolvingMe
                       ? 'bg-slate-900 border-indigo-500/40 shadow-md'
                       : 'bg-slate-950/60 border-slate-800/80'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-between gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <Avatar
                         name={debt.fromUser.name}
                         avatarUrl={debt.fromUser.avatar_url}
                         color={debt.fromUser.color || '#f43f5e'}
                         size="sm"
                       />
-                      <div className="text-xs">
-                        <span className="font-bold text-slate-100">{debt.fromUser.name}</span>
-                        <span className="text-slate-500 mx-1.5">owes</span>
-                        <span className="font-bold text-emerald-400">{debt.toUser.name}</span>
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="text-xs sm:text-sm font-bold text-slate-100 truncate">
+                          {debt.fromUser.name}
+                        </div>
+                        <div className="text-[11px] text-slate-400 truncate mt-0.5">
+                          owes <span className="font-semibold text-emerald-400">{debt.toUser.name}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-lg font-extrabold font-mono-num text-white">
+                    <div className="text-right shrink-0">
+                      <div className="text-base sm:text-lg font-extrabold font-mono-num tracking-tight text-white">
                         {formatINR(debt.amount)}
                       </div>
                     </div>
