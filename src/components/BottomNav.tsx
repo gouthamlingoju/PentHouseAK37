@@ -2,13 +2,12 @@ import React from 'react';
 import {
   LayoutDashboard,
   ReceiptIndianRupee,
-  Wallet,
   Handshake,
   Settings,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
-export type NavTab = 'dashboard' | 'expenses' | 'payments' | 'settlements' | 'settings';
+export type NavTab = 'dashboard' | 'transactions' | 'settlements' | 'settings';
 
 interface BottomNavProps {
   activeTab: NavTab;
@@ -21,8 +20,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) 
 
   const navItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: number }[] = [
     { id: 'dashboard', label: 'Home', icon: <LayoutDashboard className="w-5 h-5" /> },
-    { id: 'expenses', label: 'Expenses', icon: <ReceiptIndianRupee className="w-5 h-5" /> },
-    { id: 'payments', label: 'Payments', icon: <Wallet className="w-5 h-5" /> },
+    { id: 'transactions', label: 'Transactions', icon: <ReceiptIndianRupee className="w-5 h-5" /> },
     {
       id: 'settlements',
       label: 'Settle',
@@ -69,7 +67,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab }) 
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 border-t border-slate-800 bg-slate-950/95 backdrop-blur-xl pb-safe"
         aria-label="Mobile Navigation"
       >
-        <div className="grid grid-cols-5 h-16 max-w-md mx-auto">
+        <div className="grid grid-cols-4 h-16 max-w-md mx-auto">
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (

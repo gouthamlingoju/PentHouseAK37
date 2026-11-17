@@ -13,8 +13,7 @@ import { CloseCycleModal } from './components/CloseCycleModal';
 import { LoginPage } from './pages/LoginPage';
 import { ForcePasswordChangePage } from './pages/ForcePasswordChangePage';
 import { DashboardPage } from './pages/DashboardPage';
-import { ExpensesPage } from './pages/ExpensesPage';
-import { PaymentsPage } from './pages/PaymentsPage';
+import { TransactionsPage } from './pages/TransactionsPage';
 import { SettlementsPage } from './pages/SettlementsPage';
 import { SettingsPage } from './pages/SettingsPage';
 
@@ -121,15 +120,9 @@ function AppShell() {
           />
         )}
 
-        {activeTab === 'expenses' && (
-          <ExpensesPage
-            onOpenExpenseModal={(exp) => openTransactionModal('expense', exp)}
-          />
-        )}
-
-        {activeTab === 'payments' && (
-          <PaymentsPage
-            onOpenPaymentModal={() => openTransactionModal('expense')}
+        {activeTab === 'transactions' && (
+          <TransactionsPage
+            onOpenTransactionModal={(tab, exp) => openTransactionModal(tab || 'expense', exp)}
           />
         )}
 
