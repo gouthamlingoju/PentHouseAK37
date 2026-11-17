@@ -5,9 +5,9 @@ import { Expense, ExpenseSplit, Payment, Profile, Settlement, MemberStanding, Pa
  */
 export function calculateExpenseSplits(
   expense: Expense,
-  allProfiles: Profile[]
+  _allProfiles: Profile[]
 ): ExpenseSplit[] {
-  const { id: expenseId, cycle_id: cycleId, amount, is_excluded, split_mode, participant_ids, cap_rule } = expense;
+  const { id: expenseId, cycle_id: cycleId, amount, is_excluded, split_mode, participant_ids } = expense;
 
   // Excluded personal items have 0 impact on balance
   if (is_excluded || split_mode === 'excluded') {
@@ -25,46 +25,7 @@ export function calculateExpenseSplits(
     return [];
   }
 
-  // Capped / Partial Pool Split
-  if (split_mode === 'capped' && cap_rule && cap_rule.capped_user_id) {
-    const cappedUserId = cap_rule.capped_user_id;
-    const capPoolAmount = Math.min(cap_rule.cap_pool_amount, amount);
-    const unsharedRest = Math.max(0, amount - capPoolAmount);
-
-    const isCappedUserParticipating = participant_ids.includes(cappedUserId);
-    const otherParticipants = participant_ids.filter((pid) => pid !== cappedUserId);
-
-    if (isCappedUserParticipating && otherParticipants.length > 0) {
-      // Capped user participates in the capped pool with all participants
-      const cappedUserShare = round2(capPoolAmount / participant_ids.length);
-      const remainingForOthers = amount - cappedUserShare;
-      const otherShareEach = round2(remainingForOthers / otherParticipants.length);
-
-      return participant_ids.map((pid) => {
-        if (pid === cappedUserId) {
-          return {
-            id: `${expenseId}_split_${pid}`,
-            expense_id: expenseId,
-            cycle_id: cycleId,
-            profile_id: pid,
-            share_amount: cappedUserShare,
-            notes: `Capped share: ₹${cappedUserShare.toFixed(2)} (from ₹${capPoolAmount} pool)`,
-          };
-        } else {
-          return {
-            id: `${expenseId}_split_${pid}`,
-            expense_id: expenseId,
-            cycle_id: cycleId,
-            profile_id: pid,
-            share_amount: otherShareEach,
-            notes: `Standard share: ₹${otherShareEach.toFixed(2)}`,
-          };
-        }
-      });
-    }
-  }
-
-  // Equal Split Mode (default)
+  // Equal Split among selected participants
   const share = round2(amount / participant_ids.length);
   return participant_ids.map((pid) => ({
     id: `${expenseId}_split_${pid}`,

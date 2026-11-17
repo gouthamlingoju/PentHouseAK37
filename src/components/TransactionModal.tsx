@@ -7,7 +7,6 @@ import {
   X,
   Check,
   Calculator,
-  Shield,
   ReceiptIndianRupee,
   Crown,
   ArrowRight,
@@ -47,10 +46,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [category, setCategory] = useState<ExpenseCategory>('Grocery');
   const [paidById, setPaidById] = useState<string>(currentUser.id);
   const [isExcluded, setIsExcluded] = useState(false);
-  const [splitMode, setSplitMode] = useState<SplitMode>('equal');
   const [participantIds, setParticipantIds] = useState<string[]>([]);
-  const [cappedUserId, setCappedUserId] = useState<string>('');
-  const [capPoolAmountStr, setCapPoolAmountStr] = useState<string>('');
   const [notes, setNotes] = useState('');
 
   // Admin Transfer fields
@@ -71,10 +67,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setCategory(editingExpense.category);
       setPaidById(editingExpense.created_by || currentUser.id);
       setIsExcluded(editingExpense.is_excluded);
-      setSplitMode(editingExpense.split_mode);
       setParticipantIds(editingExpense.participant_ids);
-      setCappedUserId(editingExpense.cap_rule?.capped_user_id || '');
-      setCapPoolAmountStr(editingExpense.cap_rule?.cap_pool_amount?.toString() || '');
       setNotes(editingExpense.notes || '');
     } else {
       setTxType(defaultTab);
@@ -83,15 +76,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setCategory('Grocery');
       setPaidById(currentUser.id);
       setIsExcluded(false);
-      setSplitMode('equal');
       setParticipantIds(profiles.map((p) => p.id));
-      const yash = profiles.find((p) => p.username === 'yashwanth');
-      setCappedUserId(yash?.id || profiles[profiles.length - 1]?.id || '');
-      setCapPoolAmountStr('');
       setNotes('');
 
-      // For Admin transfer: if Admin is logging cash received, default to first non-admin roommate;
-      // if member is logging transfer to Admin, always default to currentUser.id
       if (isCurrentUserAdmin) {
         setTransferFromId(otherRoommates[0]?.id || '');
       } else {
@@ -102,42 +89,23 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   }, [editingExpense, isOpen, defaultTab, profiles, currentUser, isCurrentUserAdmin, otherRoommates]);
 
   const numericAmount = parseFloat(amountStr) || 0;
-  const numericCapPool = parseFloat(capPoolAmountStr) || 0;
 
   const previewSplits = useMemo(() => {
-    if (txType !== 'expense' || numericAmount <= 0) return [];
+    if (txType !== 'expense' || numericAmount <= 0 || isExcluded) return [];
     const dummyExpense: Expense = {
       id: 'preview',
       cycle_id: selectedCycle?.id || 'cycle_1_nov_2026',
       title: title || 'Draft Expense',
       amount: numericAmount,
       category,
-      is_excluded: isExcluded,
-      split_mode: isExcluded ? 'excluded' : splitMode,
+      is_excluded: false,
+      split_mode: 'equal',
       participant_ids: participantIds,
-      cap_rule:
-        splitMode === 'capped' && cappedUserId
-          ? { capped_user_id: cappedUserId, cap_pool_amount: numericCapPool }
-          : null,
       created_by: paidById || currentUser.id,
       created_at: new Date().toISOString(),
     };
     return calculateExpenseSplits(dummyExpense, profiles);
-  }, [
-    txType,
-    numericAmount,
-    category,
-    isExcluded,
-    splitMode,
-    participantIds,
-    cappedUserId,
-    numericCapPool,
-    profiles,
-    paidById,
-    currentUser,
-    selectedCycle,
-    title,
-  ]);
+  }, [txType, numericAmount, category, isExcluded, participantIds, profiles, paidById, currentUser, selectedCycle, title]);
 
   if (!isOpen) return null;
 
@@ -177,7 +145,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       return;
     }
 
-    // Room Expense (Single Payer — automatically logs expense + matching payment)
     if (!title.trim()) return;
     if (participantIds.length === 0 && !isExcluded) return;
 
@@ -187,12 +154,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       amount: numericAmount,
       category,
       is_excluded: isExcluded,
-      split_mode: isExcluded ? ('excluded' as SplitMode) : splitMode,
+      split_mode: (isExcluded ? 'excluded' : 'equal') as SplitMode,
       participant_ids: isExcluded ? [paidById] : participantIds,
-      cap_rule:
-        splitMode === 'capped' && cappedUserId
-          ? { capped_user_id: cappedUserId, cap_pool_amount: numericCapPool }
-          : null,
       notes: notes.trim() || undefined,
       created_by: editingExpense ? editingExpense.created_by : paidById,
     };
@@ -216,7 +179,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             </h3>
             <p className="text-xs text-slate-400">
               {editingExpense
-                ? 'Update expense details and split rules'
+                ? 'Update expense details and participating roommates'
                 : 'Log a room expense you paid for, or a transfer to Admin'}
             </p>
           </div>
@@ -228,7 +191,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </button>
         </div>
 
-        {/* Unified Transaction Type Switcher (only when creating new) */}
+        {/* Unified Transaction Type Switcher */}
         {!editingExpense && (
           <div className="px-6 pt-4">
             <div className="grid grid-cols-2 gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
@@ -263,7 +226,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[78vh] overflow-y-auto">
           {txType === 'admin_transfer' ? (
-            /* =================== TRANSFER TO ADMIN VIEW =================== */
             <>
               <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3.5 flex items-center justify-between gap-2 text-xs">
                 <div className="font-semibold text-slate-200">
@@ -336,7 +298,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
             </>
           ) : (
-            /* =================== ROOM EXPENSE VIEW (SINGLE PAYER) =================== */
             <>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-300">Expense Title *</label>
@@ -384,7 +345,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
               </div>
 
-              {/* Single Payer Selector (No Multiple Payers) */}
+              {/* Single Payer Selector */}
               {!editingExpense && (
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-300">Paid By</label>
@@ -427,133 +388,61 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </label>
               </div>
 
+              {/* Participant Checkboxes (Equal Split) */}
               {!isExcluded && (
-                <>
-                  {/* Split Mode */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-300">Split Rule</label>
-                    <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-300">
+                      Split Equally Among ({participantIds.length}/{profiles.length})
+                    </label>
+                    <div className="flex items-center gap-2 text-xs">
                       <button
                         type="button"
-                        onClick={() => setSplitMode('equal')}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                          splitMode === 'equal'
-                            ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200 shadow-sm'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
+                        onClick={selectAllParticipants}
+                        className="text-indigo-400 hover:text-indigo-300"
                       >
-                        Equal Participant Split
+                        All {profiles.length}
                       </button>
+                      <span className="text-slate-600">|</span>
                       <button
                         type="button"
-                        onClick={() => setSplitMode('capped')}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                          splitMode === 'capped'
-                            ? 'bg-indigo-600/30 border-indigo-500 text-indigo-200 shadow-sm'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                        }`}
+                        onClick={selectFourOnly}
+                        className="text-slate-400 hover:text-slate-300"
                       >
-                        Capped / Partial Pool
+                        4-Way
                       </button>
                     </div>
                   </div>
 
-                  {/* Capped Pool Settings */}
-                  {splitMode === 'capped' && (
-                    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 p-3.5 space-y-3">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
-                        <Shield className="w-4 h-4 text-indigo-400" />
-                        <span>Capped Pool Override</span>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[11px] font-medium text-slate-400 block mb-1">
-                            Capped Roommate
-                          </label>
-                          <select
-                            value={cappedUserId}
-                            onChange={(e) => setCappedUserId(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
-                          >
-                            {profiles.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-[11px] font-medium text-slate-400 block mb-1">
-                            Capped Shared Pool (₹)
-                          </label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="e.g. 1000 of 1650"
-                            value={capPoolAmountStr}
-                            onChange={(e) => setCapPoolAmountStr(e.target.value)}
-                            className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Participant Checkboxes */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-semibold text-slate-300">
-                        Shared Among ({participantIds.length}/{profiles.length})
-                      </label>
-                      <div className="flex items-center gap-2 text-xs">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {profiles.map((p) => {
+                      const isChecked = participantIds.includes(p.id);
+                      return (
                         <button
+                          key={p.id}
                           type="button"
-                          onClick={selectAllParticipants}
-                          className="text-indigo-400 hover:text-indigo-300"
+                          onClick={() => toggleParticipant(p.id)}
+                          className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                            isChecked
+                              ? 'bg-indigo-600/20 border-indigo-500/50 text-white'
+                              : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                          }`}
                         >
-                          All {profiles.length}
-                        </button>
-                        <span className="text-slate-600">|</span>
-                        <button
-                          type="button"
-                          onClick={selectFourOnly}
-                          className="text-slate-400 hover:text-slate-300"
-                        >
-                          4-Way
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      {profiles.map((p) => {
-                        const isChecked = participantIds.includes(p.id);
-                        return (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => toggleParticipant(p.id)}
-                            className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          <div
+                            className={`w-4 h-4 rounded flex items-center justify-center border text-[10px] ${
                               isChecked
-                                ? 'bg-indigo-600/20 border-indigo-500/50 text-white'
-                                : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                                ? 'bg-indigo-600 border-indigo-500 text-white'
+                                : 'border-slate-700'
                             }`}
                           >
-                            <div
-                              className={`w-4 h-4 rounded flex items-center justify-center border text-[10px] ${
-                                isChecked
-                                  ? 'bg-indigo-600 border-indigo-500 text-white'
-                                  : 'border-slate-700'
-                              }`}
-                            >
-                              {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                            </div>
-                            <span>{p.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                          </div>
+                          <span>{p.name}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-                </>
+                </div>
               )}
 
               {/* Notes */}

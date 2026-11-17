@@ -1,6 +1,5 @@
 import { INITIAL_PROFILES, INITIAL_EXPENSES, INITIAL_PAYMENTS, INITIAL_SETTLEMENTS } from '../data/seedData';
-import { calculateMemberStandings, calculatePairwiseDebts, calculateExpenseSplits } from './splitEngine';
-import { Expense } from '../types';
+import { calculateMemberStandings, calculatePairwiseDebts } from './splitEngine';
 
 function assert(condition: boolean, message: string) {
   if (!condition) {
@@ -14,7 +13,7 @@ console.log('Running PentHouse AK37 Split Engine Baseline Verification...');
 const activeExpenses = INITIAL_EXPENSES.filter((e) => !e.is_excluded);
 const excludedExpenses = INITIAL_EXPENSES.filter((e) => e.is_excluded);
 
-assert(activeExpenses.length === 31, `Expected 31 active expenses, got ${activeExpenses.length}`);
+assert(activeExpenses.length === 34, `Expected 34 active expenses, got ${activeExpenses.length}`);
 assert(excludedExpenses.length === 3, `Expected 3 excluded expenses, got ${excludedExpenses.length}`);
 
 const totalActive = activeExpenses.reduce((s, e) => s + e.amount, 0);
@@ -66,29 +65,4 @@ assert(owedBySanthosh.amount === 4143.7, `Santhosh owed mismatch: ${owedBySantho
 assert(owedByYashwanth.amount === 3563.2, `Yashwanth owed mismatch: ${owedByYashwanth.amount}`);
 assert(owedByPuri.amount === 10202.7, `Puri owed mismatch: ${owedByPuri.amount}`);
 
-// 4. Test Capped Split Engine logic specifically (Section 3.2 example)
-const sampleCappedExpense: Expense = {
-  id: 'exp_rice_test',
-  cycle_id: 'cycle_1_nov_2026',
-  title: 'Rice Bag Test',
-  amount: 1650,
-  category: 'Grocery',
-  is_excluded: false,
-  split_mode: 'capped',
-  participant_ids: ['user_goutham', 'user_saikumar', 'user_santhosh', 'user_yashwanth', 'user_puri'],
-  cap_rule: {
-    capped_user_id: 'user_yashwanth',
-    cap_pool_amount: 1000,
-  },
-  created_by: 'user_goutham',
-  created_at: new Date().toISOString(),
-};
-
-const cappedSplits = calculateExpenseSplits(sampleCappedExpense, INITIAL_PROFILES);
-const yashSplit = cappedSplits.find((s) => s.profile_id === 'user_yashwanth')!;
-const otherSplits = cappedSplits.filter((s) => s.profile_id !== 'user_yashwanth');
-
-assert(yashSplit.share_amount === 200, `Expected Yashwanth capped share ₹200, got ${yashSplit.share_amount}`);
-assert(otherSplits.every((s) => s.share_amount === 362.5), `Expected other shares ₹362.50 each`);
-
-console.log('✅ ALL BASELINE ENGINE & PRD VALIDATION TESTS PASSED PERFECTLY!');
+console.log('✅ ALL BASELINE ENGINE & CYCLE 1 VERIFICATION TESTS PASSED (ZERO CAPPING)!');

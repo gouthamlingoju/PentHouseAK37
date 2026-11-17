@@ -41,9 +41,8 @@ create table if not exists public.expenses (
   amount numeric(10,2) not null check (amount >= 0),
   category text not null check (category in ('Fixed', 'Grocery', 'Food', 'Utilities', 'Personal', 'Other')),
   is_excluded boolean not null default false,
-  split_mode text not null check (split_mode in ('equal', 'capped', 'excluded', 'custom')) default 'equal',
+  split_mode text not null check (split_mode in ('equal', 'excluded')) default 'equal',
   participant_ids jsonb not null default '[]'::jsonb,
-  cap_rule jsonb,
   notes text,
   created_by text not null references public.profiles(id),
   created_at timestamptz not null default now()

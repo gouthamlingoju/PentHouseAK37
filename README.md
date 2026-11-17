@@ -5,7 +5,7 @@ A mobile-first roommate expense, treasury management, and two-party consent sett
 ## Features
 
 - **Decoupled Ledger ("Who Paid" vs. "Paid For What")** — Split logic lives on Expenses; Payments track Vendor bills and Admin Treasury transfers separately.
-- **Granular Per-Expense Split Engine** — Supports Equal Participant Split, Capped / Partial Pool Split, and Excluded Personal items (`₹0` impact).
+- **Per-Expense Split Engine** — Supports Equal Participant Split across any selected roommates and Excluded Personal items (`₹0` impact).
 - **Transferable Admin Treasury** — Atomic `transfer_admin_role` RPC transfers future treasury collections while preserving historical audit integrity.
 - **Two-Party Consent Settlements** — Strict RLS enforces that only the counterparty can confirm (`2/2 Closed`) or decline pending full/partial settlements. Includes 1-tap `upi://pay` deep links and scannable UPI QR codes.
 - **Username & Password Auth** — Roommates sign in with their username (`goutham`, `saikumar`, `santhosh`, `yashwanth`, `puri`, or any newly added roommate) and password.

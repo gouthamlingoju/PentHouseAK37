@@ -1,4 +1,4 @@
-export type SplitMode = 'equal' | 'capped' | 'excluded' | 'custom';
+export type SplitMode = 'equal' | 'excluded';
 export type PaymentType = 'vendor' | 'admin_treasury';
 export type SettlementStatus = 'pending' | 'closed' | 'rejected';
 export type ExpenseCategory = 'Fixed' | 'Grocery' | 'Food' | 'Utilities' | 'Personal' | 'Other';
@@ -30,11 +30,6 @@ export interface Cycle {
   created_at: string;
 }
 
-export interface CapRule {
-  capped_user_id: string;
-  cap_pool_amount: number; // e.g. 1000 out of 1650
-}
-
 export interface Expense {
   id: string;
   cycle_id: string;
@@ -44,7 +39,6 @@ export interface Expense {
   is_excluded: boolean;
   split_mode: SplitMode;
   participant_ids: string[];
-  cap_rule?: CapRule | null;
   notes?: string;
   created_by: string;
   created_at: string;

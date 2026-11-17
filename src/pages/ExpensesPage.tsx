@@ -12,7 +12,6 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  Shield,
   Ban,
   ReceiptIndianRupee,
 } from 'lucide-react';
@@ -237,11 +236,6 @@ export const ExpensesPage: React.FC<ExpensesPageProps> = ({ onOpenExpenseModal }
                       {exp.is_excluded && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
                           <Ban className="w-3 h-3" /> Excluded (₹0)
-                        </span>
-                      )}
-                      {exp.split_mode === 'capped' && !exp.is_excluded && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                          <Shield className="w-3 h-3" /> Capped Pool
                         </span>
                       )}
                     </div>

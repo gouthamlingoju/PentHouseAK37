@@ -562,7 +562,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         is_excluded: newExpense.is_excluded,
         split_mode: newExpense.split_mode,
         participant_ids: newExpense.participant_ids,
-        cap_rule: newExpense.cap_rule || null,
         notes: newExpense.notes || null,
         created_by: newExpense.created_by,
       });
@@ -635,7 +634,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           is_excluded: merged.is_excluded,
           split_mode: merged.split_mode,
           participant_ids: merged.participant_ids,
-          cap_rule: merged.cap_rule || null,
           notes: merged.notes || null,
         })
         .eq('id', id);
