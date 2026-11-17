@@ -181,6 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const profiles: Profile[] = (profRes.data || []).map((p: any) => ({
         ...p,
         is_admin: Boolean(p.is_admin),
+        must_change_password: Boolean(p.must_change_password),
       }));
 
       const cycles: Cycle[] = cycRes.data || [];
@@ -387,6 +388,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       showToast('error', error.message);
       return { error: error.message };
     }
+
+    // Clear mandatory first-login password change flag in profiles
+    if (currentUser.id && currentUser.id !== 'loading') {
+      const { error: flagErr } = await supabase
+        .from('profiles')
+        .update({ must_change_password: false })
+        .eq('id', currentUser.id);
+      if (flagErr) {
+        console.warn('Could not clear must_change_password flag:', flagErr.message);
+      }
+      await refreshData();
+    }
+
     showToast('success', 'Your login password has been updated!');
     return {};
   };

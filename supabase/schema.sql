@@ -17,6 +17,7 @@ create table if not exists public.profiles (
   avatar_url text,
   is_admin boolean not null default false,
   is_active boolean not null default true,
+  must_change_password boolean not null default true,
   color text not null default '#6366f1',
   created_at timestamptz not null default now()
 );

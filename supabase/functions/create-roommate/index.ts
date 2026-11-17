@@ -89,8 +89,14 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Require roommate to choose their own password on next login
+      await supabaseAdmin
+        .from('profiles')
+        .update({ must_change_password: true })
+        .eq('id', profileId);
+
       return new Response(
-        JSON.stringify({ success: true, message: `Password updated for ${targetProfile.name}` }),
+        JSON.stringify({ success: true, message: `Password reset for ${targetProfile.name}. They will be asked to change it on next login.` }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -169,6 +175,7 @@ Deno.serve(async (req) => {
         color,
         is_admin: false,
         is_active: true,
+        must_change_password: true,
       })
       .select()
       .single();

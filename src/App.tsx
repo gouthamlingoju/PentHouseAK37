@@ -11,6 +11,7 @@ import { AdminTransferModal } from './components/AdminTransferModal';
 import { CloseCycleModal } from './components/CloseCycleModal';
 
 import { LoginPage } from './pages/LoginPage';
+import { ForcePasswordChangePage } from './pages/ForcePasswordChangePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ExpensesPage } from './pages/ExpensesPage';
 import { PaymentsPage } from './pages/PaymentsPage';
@@ -20,7 +21,7 @@ import { SettingsPage } from './pages/SettingsPage';
 import { Expense, PairwiseDebt, Profile } from './types';
 
 function AppShell() {
-  const { authLoading, isAuthenticated, dataLoading, profiles } = useApp();
+  const { isLiveSupabase, authLoading, isAuthenticated, dataLoading, profiles, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
 
   // Modals state
@@ -66,6 +67,16 @@ function AppShell() {
         <div className="w-10 h-10 rounded-xl border-2 border-indigo-500 border-t-transparent animate-spin" />
         <p className="text-xs font-semibold text-slate-400">Syncing live ledger from Supabase...</p>
       </div>
+    );
+  }
+
+  // Strictly require password change on first login (or after Admin password reset)
+  if (isLiveSupabase && currentUser.id !== 'loading' && currentUser.must_change_password) {
+    return (
+      <>
+        <ToastContainer />
+        <ForcePasswordChangePage />
+      </>
     );
   }
 

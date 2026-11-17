@@ -15,6 +15,7 @@ export interface Profile {
   avatar_url?: string;
   is_admin: boolean;
   is_active?: boolean;
+  must_change_password?: boolean;
   color?: string;
   created_at: string;
 }
