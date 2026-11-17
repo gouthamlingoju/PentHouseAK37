@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { formatINR, getInitials } from '../lib/format';
+import { formatINR } from '../lib/format';
+import { Avatar } from './Avatar';
 import { Crown, ArrowUpRight, ArrowDownLeft, ShieldCheck, Wallet, Handshake } from 'lucide-react';
 import { Profile } from '../types';
 
@@ -62,12 +63,13 @@ export const StandingCards: React.FC<StandingCardsProps> = ({ onSettleWithUser }
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2.5">
                     <div className="relative">
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md text-sm ring-1 ring-white/10"
-                        style={{ backgroundColor: s.profile.color || '#6366f1' }}
-                      >
-                        {getInitials(s.profile.name)}
-                      </div>
+                      <Avatar
+                        name={s.profile.name}
+                        avatarUrl={s.profile.avatar_url}
+                        color={s.profile.color}
+                        size="lg"
+                        className="shadow-md"
+                      />
                       {isAdmin && (
                         <div className="absolute -top-1 -right-1 bg-amber-400 text-slate-950 p-0.5 rounded-full shadow" title="Cycle Admin">
                           <Crown className="w-3 h-3" />

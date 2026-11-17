@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { formatINR, formatDateTime, getInitials } from '../lib/format';
+import { formatINR, formatDateTime } from '../lib/format';
+import { Avatar } from './Avatar';
 import { generateUpiUrl } from '../lib/upi';
 import {
   CheckCircle2,
@@ -224,12 +225,12 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white"
-                        style={{ backgroundColor: debt.fromUser.color || '#f43f5e' }}
-                      >
-                        {getInitials(debt.fromUser.name)}
-                      </div>
+                      <Avatar
+                        name={debt.fromUser.name}
+                        avatarUrl={debt.fromUser.avatar_url}
+                        color={debt.fromUser.color || '#f43f5e'}
+                        size="sm"
+                      />
                       <div className="text-xs">
                         <span className="font-bold text-slate-100">{debt.fromUser.name}</span>
                         <span className="text-slate-500 mx-1.5">owes</span>

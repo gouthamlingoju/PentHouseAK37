@@ -16,7 +16,7 @@ import {
   LogOut,
   Phone,
 } from 'lucide-react';
-import { getInitials } from '../lib/format';
+import { Avatar } from '../components/Avatar';
 
 interface SettingsPageProps {
   onOpenProfile: () => void;
@@ -85,12 +85,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
       {/* 1. Self Profile Updation Card */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-extrabold text-white shadow-lg shrink-0"
-            style={{ backgroundColor: currentUser.color || '#6366f1' }}
-          >
-            {getInitials(currentUser.name)}
-          </div>
+          <Avatar
+            name={currentUser.name}
+            avatarUrl={currentUser.avatar_url}
+            color={currentUser.color}
+            size="xl"
+            className="shadow-lg"
+          />
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-base font-bold text-white">{currentUser.name}</h3>
@@ -162,12 +163,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               className="rounded-xl bg-slate-950/70 border border-slate-800 p-3.5 flex items-center justify-between gap-3"
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ backgroundColor: p.color || '#6366f1' }}
-                >
-                  {getInitials(p.name)}
-                </div>
+                <Avatar
+                  name={p.name}
+                  avatarUrl={p.avatar_url}
+                  color={p.color}
+                  size="md"
+                />
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-sm font-bold text-white truncate">{p.name}</span>

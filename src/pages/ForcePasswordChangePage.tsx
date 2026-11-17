@@ -10,7 +10,7 @@ import {
   LogOut,
   KeyRound,
 } from 'lucide-react';
-import { getInitials } from '../lib/format';
+import { Avatar } from '../components/Avatar';
 
 export const ForcePasswordChangePage: React.FC = () => {
   const { currentUser, updatePassword, signOut } = useApp();
@@ -58,12 +58,13 @@ export const ForcePasswordChangePage: React.FC = () => {
       <div className="w-full max-w-md relative z-10 space-y-5">
         {/* User Identity Header */}
         <div className="text-center space-y-2">
-          <div
-            className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center font-extrabold text-white text-lg shadow-xl ring-2 ring-white/15"
-            style={{ backgroundColor: currentUser.color || '#6366f1' }}
-          >
-            {getInitials(currentUser.name)}
-          </div>
+          <Avatar
+            name={currentUser.name}
+            avatarUrl={currentUser.avatar_url}
+            color={currentUser.color}
+            size="xl"
+            className="mx-auto shadow-xl ring-2 ring-white/15"
+          />
           <h1 className="text-xl font-extrabold text-white">
             Welcome, {currentUser.name}!
           </h1>

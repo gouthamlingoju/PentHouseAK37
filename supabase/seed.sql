@@ -5,13 +5,13 @@
 -- Vendor Payments: ₹45,831 (32 entries) | Admin Treasury: ₹3,000 (2 entries)
 -- ====================================================================
 
--- 1. Profiles (Upsert preserving auth_user_id links)
-insert into public.profiles (id, username, name, email, upi_id, is_admin, color, avatar_url) values
-  ('user_goutham', 'goutham', 'Goutham', 'goutham@penthouse.ak37', 'goutham@okhdfcbank', true, '#6366f1', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'),
-  ('user_saikumar', 'saikumar', 'Saikumar', 'saikumar@penthouse.ak37', 'saikumar@oksbi', false, '#06b6d4', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'),
-  ('user_santhosh', 'santhosh', 'Santhosh', 'santhosh@penthouse.ak37', 'santhosh@okaxis', false, '#10b981', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80'),
-  ('user_yashwanth', 'yashwanth', 'Yashwanth', 'yashwanth@penthouse.ak37', 'yashwanth@ybl', false, '#f59e0b', 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&auto=format&fit=crop&q=80'),
-  ('user_puri', 'puri', 'Puri', 'puri@penthouse.ak37', 'puri@paytm', false, '#ec4899', 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80')
+-- 1. Profiles (Upsert preserving auth_user_id and custom avatar_url links)
+insert into public.profiles (id, username, name, email, upi_id, is_admin, color) values
+  ('user_goutham', 'goutham', 'Goutham', 'goutham@penthouse.ak37', 'goutham@okhdfcbank', true, '#6366f1'),
+  ('user_saikumar', 'saikumar', 'Saikumar', 'saikumar@penthouse.ak37', 'saikumar@oksbi', false, '#06b6d4'),
+  ('user_santhosh', 'santhosh', 'Santhosh', 'santhosh@penthouse.ak37', 'santhosh@okaxis', false, '#10b981'),
+  ('user_yashwanth', 'yashwanth', 'Yashwanth', 'yashwanth@penthouse.ak37', 'yashwanth@ybl', false, '#f59e0b'),
+  ('user_puri', 'puri', 'Puri', 'puri@penthouse.ak37', 'puri@paytm', false, '#ec4899')
 on conflict (id) do update set
   username = excluded.username,
   name = excluded.name,

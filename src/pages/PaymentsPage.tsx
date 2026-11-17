@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { formatINR, formatDateTime, getInitials } from '../lib/format';
+import { formatINR, formatDateTime } from '../lib/format';
+import { Avatar } from '../components/Avatar';
 import {
   Plus,
   Wallet,
@@ -151,12 +152,12 @@ export const PaymentsPage: React.FC<PaymentsPageProps> = ({ onOpenPaymentModal }
               >
                 <div className="flex items-start gap-3">
                   {/* Payer Avatar */}
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs text-white shrink-0 shadow"
-                    style={{ backgroundColor: payer?.color || '#6366f1' }}
-                  >
-                    {getInitials(payer?.name || '?')}
-                  </div>
+                  <Avatar
+                    name={payer?.name || '?'}
+                    avatarUrl={payer?.avatar_url}
+                    color={payer?.color}
+                    size="lg"
+                  />
 
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">

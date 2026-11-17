@@ -9,7 +9,7 @@ import {
   LogOut,
   Wifi,
 } from 'lucide-react';
-import { getInitials } from '../lib/format';
+import { Avatar } from './Avatar';
 
 interface NavbarProps {
   onOpenProfile: () => void;
@@ -94,12 +94,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
             className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 px-2.5 py-1.5 rounded-xl transition-all shadow-sm"
             title="Update your profile, UPI ID, or password"
           >
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold text-white shadow-sm ring-1 ring-white/10"
-              style={{ backgroundColor: currentUser.color || '#6366f1' }}
-            >
-              {getInitials(currentUser.name)}
-            </div>
+            <Avatar
+              name={currentUser.name}
+              avatarUrl={currentUser.avatar_url}
+              color={currentUser.color}
+              size="xs"
+            />
             <div className="text-left hidden sm:block">
               <div className="flex items-center gap-1">
                 <span className="text-xs font-bold text-slate-100">{currentUser.name}</span>
