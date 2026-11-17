@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Avatar } from './Avatar';
 import { AvatarCropModal } from './AvatarCropModal';
+import { CameraCaptureModal } from './CameraCaptureModal';
 import {
   validateAvatarFile,
   uploadCroppedAvatarBlob,
@@ -19,6 +20,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Camera,
+  Image as ImageIcon,
   Trash2,
   Loader2,
   Crop,
@@ -50,6 +52,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const [phone, setPhone] = useState(currentUser.phone || '');
   const [color, setColor] = useState(currentUser.color || '#6366f1');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(currentUser.avatar_url || null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
   const [cropSourceIsBlob, setCropSourceIsBlob] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -88,11 +91,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     setCropSourceIsBlob(false);
   };
 
-  const handlePhotoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-
+  const openCropWithFile = (file: File) => {
     const validationErr = validateAvatarFile(file);
     if (validationErr) {
       setPhotoError(validationErr);
@@ -103,6 +102,18 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     const objUrl = URL.createObjectURL(file);
     setCropSourceUrl(objUrl);
     setCropSourceIsBlob(true);
+  };
+
+  const handlePhotoSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    openCropWithFile(file);
+  };
+
+  const handleCameraCaptured = (file: File) => {
+    setCameraOpen(false);
+    openCropWithFile(file);
   };
 
   const handleAdjustExistingPhoto = () => {
@@ -273,16 +284,26 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               <div className="flex-1 min-w-0 space-y-1.5">
                 <div className="text-xs font-bold text-slate-200">Profile Picture</div>
                 <p className="text-[11px] text-slate-400 leading-snug">
-                  Pick a photo to crop, zoom, rotate, and set aspect ratio before saving.
+                  Upload from gallery or snap with your camera, then crop & adjust.
                 </p>
                 <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                   <button
                     type="button"
                     disabled={uploadingPhoto}
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold transition-all disabled:opacity-50"
+                    className="px-2.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[11px] font-bold flex items-center gap-1 transition-all disabled:opacity-50"
                   >
-                    {uploadingPhoto ? 'Uploading...' : avatarUrl ? 'Change' : 'Upload Photo'}
+                    <ImageIcon className="w-3 h-3" />
+                    <span>{uploadingPhoto ? 'Uploading...' : 'Gallery'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={uploadingPhoto}
+                    onClick={() => setCameraOpen(true)}
+                    className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 transition-all disabled:opacity-50"
+                  >
+                    <Camera className="w-3 h-3" />
+                    <span>Camera</span>
                   </button>
                   {avatarUrl && (
                     <button
@@ -480,6 +501,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           </form>
         )}
       </div>
+
+      {/* Live Camera Capture Modal */}
+      <CameraCaptureModal
+        isOpen={cameraOpen}
+        onClose={() => setCameraOpen(false)}
+        onCaptureFile={handleCameraCaptured}
+        defaultFacingMode="user"
+      />
 
       {/* Interactive Crop, Zoom, Rotate & Aspect Ratio Editor */}
       <AvatarCropModal
