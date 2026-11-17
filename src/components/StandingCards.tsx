@@ -9,26 +9,39 @@ interface StandingCardsProps {
 }
 
 export const StandingCards: React.FC<StandingCardsProps> = ({ onSettleWithUser }) => {
-  const { standings, currentUser, activeAdmin, isCurrentCycleActive } = useApp();
+  const { standings, currentUser, activeAdmin, isCurrentCycleActive, isCurrentUserAdmin } = useApp();
+
+  // Privacy: Non-admin members only see their own standing, never other roommates' outstandings
+  const visibleStandings = isCurrentUserAdmin
+    ? standings
+    : standings.filter((s) => s.profile.id === currentUser.id);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-            <span>Roommate Standings</span>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
-              {standings.length} Members
-            </span>
+            <span>{isCurrentUserAdmin ? 'Roommate Standings' : 'Your Standing'}</span>
+            {isCurrentUserAdmin && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                {visibleStandings.length} Members
+              </span>
+            )}
           </h2>
           <p className="text-xs text-slate-400">
-            Real-time balance equation: <code className="text-slate-300 font-mono text-[11px]">Paid - Consumed - Treasury Held</code>
+            Real-time balance equation: <code className="text-slate-300 font-mono text-[11px]">Paid - Consumed{isCurrentUserAdmin ? ' - Treasury Held' : ''}</code>
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        {standings.map((s) => {
+      <div
+        className={`grid gap-3.5 ${
+          isCurrentUserAdmin
+            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-5'
+            : 'grid-cols-1 max-w-md'
+        }`}
+      >
+        {visibleStandings.map((s) => {
           const isMe = s.profile.id === currentUser.id;
           const isAdmin = s.profile.id === activeAdmin?.id || s.profile.is_admin;
           const isCreditor = s.netBalance > 0.01;

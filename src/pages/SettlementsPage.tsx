@@ -20,10 +20,13 @@ interface SettlementsPageProps {
 export const SettlementsPage: React.FC<SettlementsPageProps> = ({
   onOpenSettlementModal,
 }) => {
-  const { profiles, cycleSettlements, isCurrentCycleActive } = useApp();
+  const { profiles, currentUser, cycleSettlements, isCurrentCycleActive, isCurrentUserAdmin } = useApp();
   const [filter, setFilter] = useState<'all' | 'pending' | 'closed' | 'rejected'>('all');
 
   const filtered = cycleSettlements.filter((s) => {
+    if (!isCurrentUserAdmin && s.from_user_id !== currentUser.id && s.to_user_id !== currentUser.id) {
+      return false;
+    }
     if (filter !== 'all' && s.status !== filter) return false;
     return true;
   });

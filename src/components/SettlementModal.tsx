@@ -28,7 +28,14 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
   prefillTargetUser,
   prefillAmount,
 }) => {
-  const { profiles, currentUser, activeAdmin, pairwiseDebts, initiateSettlement } = useApp();
+  const {
+    profiles,
+    currentUser,
+    activeAdmin,
+    pairwiseDebts,
+    initiateSettlement,
+    isCurrentUserAdmin,
+  } = useApp();
 
   const [fromUserId, setFromUserId] = useState('');
   const [toUserId, setToUserId] = useState('');
@@ -58,14 +65,17 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
       const myDebt = pairwiseDebts.find(
         (d) => d.fromUser.id === currentUser.id || d.toUser.id === currentUser.id
       );
-      if (myDebt) {
+      if (myDebt && (isCurrentUserAdmin || myDebt.fromUser.id === currentUser.id)) {
         setFromUserId(myDebt.fromUser.id);
         setToUserId(myDebt.toUser.id);
         setAmountStr(myDebt.amount.toFixed(2));
       } else {
         setFromUserId(currentUser.id);
-        const other = profiles.find((p) => p.id !== currentUser.id);
-        setToUserId(other?.id || '');
+        const defaultRecipient =
+          activeAdmin && activeAdmin.id !== currentUser.id
+            ? activeAdmin
+            : profiles.find((p) => p.id !== currentUser.id);
+        setToUserId(defaultRecipient?.id || '');
         setAmountStr('');
       }
     }
@@ -76,12 +86,16 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
   const numericAmount = parseFloat(amountStr) || 0;
 
   // Lookup exact remaining owed amount between selected from -> to pair
+  // Privacy: non-admins can only view owed amounts involving themselves
   const remainingOwed = useMemo(() => {
+    if (!isCurrentUserAdmin && fromUserId !== currentUser.id && toUserId !== currentUser.id) {
+      return 0;
+    }
     const match = pairwiseDebts.find(
       (d) => d.fromUser.id === fromUserId && d.toUser.id === toUserId
     );
     return match ? match.amount : 0;
-  }, [pairwiseDebts, fromUserId, toUserId]);
+  }, [pairwiseDebts, fromUserId, toUserId, isCurrentUserAdmin, currentUser.id]);
 
   const upiUrl = useMemo(() => {
     if (!toUser || numericAmount <= 0) return '';
@@ -137,17 +151,23 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-11 gap-2 items-end">
             <div className="sm:col-span-5 space-y-1">
               <label className="text-xs font-semibold text-slate-300">Payer (Debtor)</label>
-              <select
-                value={fromUserId}
-                onChange={(e) => setFromUserId(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-rose-300 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+              {isCurrentUserAdmin ? (
+                <select
+                  value={fromUserId}
+                  onChange={(e) => setFromUserId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-rose-300 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div className="w-full bg-slate-950/70 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-rose-300 font-semibold">
+                  {currentUser.name} (You)
+                </div>
+              )}
             </div>
 
             <div className="sm:col-span-1 flex items-center justify-center pb-2.5 text-slate-500">
@@ -161,7 +181,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
                 onChange={(e) => setToUserId(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-emerald-300 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                {profiles.map((p) => (
+                {(isCurrentUserAdmin ? profiles : profiles.filter((p) => p.id !== currentUser.id)).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>

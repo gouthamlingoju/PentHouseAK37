@@ -30,8 +30,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     cyclePayments,
     currentUserStanding,
     activeAdmin,
-    standings,
     isCurrentCycleActive,
+    isCurrentUserAdmin,
   } = useApp();
 
   const activeExpenses = cycleExpenses.filter((e) => !e.is_excluded);
@@ -113,43 +113,69 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
         </div>
 
-        {/* Card 2: Total Vendor Payments */}
+        {/* Card 2: Admin sees Total Vendor Payments; Member sees Their Total Paid */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-semibold">Vendor Payments Logged</span>
+            <span className="text-xs font-semibold">
+              {isCurrentUserAdmin ? 'Vendor Payments Logged' : 'Your Total Paid'}
+            </span>
             <Wallet className="w-4 h-4 text-cyan-400" />
           </div>
           <div>
             <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-white">
-              {formatINR(totalVendorPayments)}
+              {formatINR(isCurrentUserAdmin ? totalVendorPayments : currentUserStanding?.totalPayments || 0)}
             </div>
             <div className="text-[11px] text-slate-400 mt-1">
-              {Math.abs(totalVendorPayments - totalActiveExpenses) < 0.01 ? (
-                <span className="text-emerald-400 font-semibold">✓ 100% Reconciled with Pool</span>
+              {isCurrentUserAdmin ? (
+                Math.abs(totalVendorPayments - totalActiveExpenses) < 0.01 ? (
+                  <span className="text-emerald-400 font-semibold">✓ 100% Reconciled with Pool</span>
+                ) : (
+                  <span className="text-amber-300">
+                    Diff: {formatINR(totalVendorPayments - totalActiveExpenses)}
+                  </span>
+                )
               ) : (
-                <span className="text-amber-300">
-                  Diff: {formatINR(totalVendorPayments - totalActiveExpenses)}
+                <span>
+                  Vendor: {formatINR(currentUserStanding?.totalVendorPaid || 0, false)} • Admin:{' '}
+                  {formatINR(currentUserStanding?.totalAdminTreasuryPaid || 0, false)}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Card 3: Admin Treasury */}
-        <div className="rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-amber-300/80 mb-2">
-            <span className="text-xs font-semibold">Admin Treasury Held</span>
-            <Crown className="w-4 h-4 text-amber-400" />
-          </div>
-          <div>
-            <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-amber-300">
-              {formatINR(totalAdminTreasury)}
+        {/* Card 3: Admin sees Admin Treasury Held; Member sees Their Consumed Share */}
+        {isCurrentUserAdmin ? (
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-950/15 p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-amber-300/80 mb-2">
+              <span className="text-xs font-semibold">Admin Treasury Held</span>
+              <Crown className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="text-[11px] text-slate-400 mt-1">
-              Custodian: <strong className="text-amber-200">{activeAdmin?.name}</strong>
+            <div>
+              <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-amber-300">
+                {formatINR(totalAdminTreasury)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1">
+                Custodian: <strong className="text-amber-200">{activeAdmin?.name}</strong>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 flex flex-col justify-between">
+            <div className="flex items-center justify-between text-slate-400 mb-2">
+              <span className="text-xs font-semibold">Your Expense Share</span>
+              <Layers className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <div className="text-xl sm:text-2xl font-extrabold font-mono-num text-white">
+                {formatINR(currentUserStanding?.totalExpenseShare || 0)}
+              </div>
+              <div className="text-[11px] text-slate-400 mt-1">
+                Your total consumed share this cycle
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Card 4: Your Net Balance */}
         <div

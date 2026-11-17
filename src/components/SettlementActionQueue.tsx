@@ -30,9 +30,17 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
     confirmSettlement,
     rejectSettlement,
     isCurrentCycleActive,
+    isCurrentUserAdmin,
   } = useApp();
 
   const getProfile = (id: string) => profiles.find((p) => p.id === id);
+
+  // Privacy: Non-admin members only see dues involving themselves
+  const visibleDebts = isCurrentUserAdmin
+    ? pairwiseDebts
+    : pairwiseDebts.filter(
+        (d) => d.fromUser.id === currentUser.id || d.toUser.id === currentUser.id
+      );
 
   return (
     <div className="space-y-6">
@@ -163,10 +171,12 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
               <Handshake className="w-5 h-5 text-indigo-400" />
-              <span>Net Settlement Queue</span>
+              <span>{isCurrentUserAdmin ? 'Net Settlement Queue' : 'Your Pending Dues'}</span>
             </h3>
             <p className="text-xs text-slate-400">
-              Simplified pairwise dues remaining to close this cycle cleanly
+              {isCurrentUserAdmin
+                ? 'Simplified pairwise dues remaining to close this cycle cleanly'
+                : 'Your remaining balance to settle for this cycle'}
             </p>
           </div>
           {isCurrentCycleActive && (
@@ -180,15 +190,19 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
           )}
         </div>
 
-        {pairwiseDebts.length === 0 ? (
+        {visibleDebts.length === 0 ? (
           <div className="py-10 text-center rounded-xl border border-dashed border-emerald-500/30 bg-emerald-950/10">
             <Sparkles className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-            <p className="text-sm font-bold text-emerald-300">All Room Dues Are Completely Settled!</p>
+            <p className="text-sm font-bold text-emerald-300">
+              {isCurrentUserAdmin
+                ? 'All Room Dues Are Completely Settled!'
+                : 'Your Dues Are Completely Settled!'}
+            </p>
             <p className="text-xs text-slate-400 mt-1">Zero remaining balances for this cycle.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {pairwiseDebts.map((debt, idx) => {
+            {visibleDebts.map((debt, idx) => {
               const isInvolvingMe =
                 debt.fromUser.id === currentUser.id || debt.toUser.id === currentUser.id;
               const isMeDebtor = debt.fromUser.id === currentUser.id;
