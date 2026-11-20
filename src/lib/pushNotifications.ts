@@ -37,6 +37,9 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
   if (!isPushSupported()) return null;
   try {
     const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    try {
+      await reg.update();
+    } catch {}
     await navigator.serviceWorker.ready;
     return reg;
   } catch (err) {

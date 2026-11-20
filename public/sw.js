@@ -1,4 +1,4 @@
-// PentHouse AK37 Web Push Service Worker
+// PentHouse AK37 Web Push Service Worker v2
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
@@ -21,9 +21,9 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'PentHouse AK37';
   const options = {
     body: data.body || 'A new transaction was logged in your ledger.',
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
-    tag: data.tag || 'ak37-transaction',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: data.tag || `ak37-${Date.now()}`,
     renotify: true,
     data: {
       url: data.url || '/',

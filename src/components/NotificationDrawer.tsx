@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatINR, formatDateTime } from '../lib/format';
+import { dispatchPushNotification } from '../lib/pushNotifications';
 import {
   X,
   Bell,
@@ -32,6 +33,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
     isPushSubscribed,
     togglePushSubscription,
     showToast,
+    currentUser,
   } = useApp();
 
   const [togglingPush, setTogglingPush] = useState(false);
@@ -51,18 +53,35 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
   const handleSendTestPush = async () => {
     setSendingTest(true);
     try {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('PentHouse AK37', {
-          body: '🔔 Test notification! Notifications are working on this device.',
-          icon: '/favicon.svg',
-        });
-        showToast('success', 'Test notification triggered!');
-      } else {
-        showToast('info', 'Please enable notifications first.');
+      if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+        showToast('info', 'Please enable notifications on this device first.');
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      showToast('error', 'Failed to show test notification.');
+
+      // 1. Show immediate native notification via Service Worker (compatible with Android Chrome & Desktop)
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification('PentHouse AK37', {
+          body: '🔔 Test notification! Notifications are working on this device.',
+          icon: '/icon-192.png',
+          badge: '/icon-192.png',
+          data: { url: '/' },
+        } as NotificationOptions);
+      }
+
+      // 2. Also dispatch end-to-end push through Supabase Edge Function to verify FCM/APNs server route
+      if (currentUser?.id) {
+        await dispatchPushNotification({
+          title: 'PentHouse AK37',
+          body: `🔔 Server push delivered to ${currentUser.name}'s device!`,
+          targetProfileIds: [currentUser.id],
+        });
+      }
+
+      showToast('success', 'Test notification triggered!');
+    } catch (err: any) {
+      console.error('Test notification error:', err);
+      showToast('error', `Notification failed: ${err?.message || 'Check site permissions'}`);
     } finally {
       setSendingTest(false);
     }
