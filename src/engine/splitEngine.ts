@@ -7,18 +7,10 @@ export function calculateExpenseSplits(
   expense: Expense,
   _allProfiles: Profile[]
 ): ExpenseSplit[] {
-  const { id: expenseId, cycle_id: cycleId, amount, is_excluded, split_mode, participant_ids } = expense;
+  const { id: expenseId, cycle_id: cycleId, amount, is_excluded, participant_ids } = expense;
 
-  // Excluded personal items have 0 impact on balance
-  if (is_excluded || split_mode === 'excluded') {
-    return participant_ids.map((pid) => ({
-      id: `${expenseId}_split_${pid}`,
-      expense_id: expenseId,
-      cycle_id: cycleId,
-      profile_id: pid,
-      share_amount: 0,
-      notes: 'Excluded item (Personal)',
-    }));
+  if (is_excluded || (expense.split_mode as string) === 'excluded') {
+    return [];
   }
 
   if (participant_ids.length === 0) {

@@ -66,12 +66,7 @@ insert into public.expenses (id, cycle_id, title, amount, category, is_excluded,
   ('exp_08a', 'cycle_1_nov_2026', 'Airtel Wifi (5-Way Shared)', 600.00, 'Utilities', false, 'equal', '["user_goutham", "user_saikumar", "user_santhosh", "user_yashwanth", "user_puri"]'::jsonb, 'Shared among all 5 roommates', 'user_santhosh', '2026-11-03 20:00:00+00'),
   ('exp_08b', 'cycle_1_nov_2026', 'Airtel Wifi (4-Way Shared)', 950.00, 'Utilities', false, 'equal', '["user_goutham", "user_saikumar", "user_santhosh", "user_puri"]'::jsonb, '4-Way — Yashwanth excluded', 'user_santhosh', '2026-11-03 20:01:00+00'),
   ('exp_24a', 'cycle_1_nov_2026', 'Rice Bag (5-Way Shared)', 1000.00, 'Grocery', false, 'equal', '["user_goutham", "user_saikumar", "user_santhosh", "user_yashwanth", "user_puri"]'::jsonb, 'Shared among all 5 roommates', 'user_saikumar', '2026-11-11 16:00:00+00'),
-  ('exp_24b', 'cycle_1_nov_2026', 'Rice Bag (4-Way Shared)', 650.00, 'Grocery', false, 'equal', '["user_goutham", "user_saikumar", "user_santhosh", "user_puri"]'::jsonb, '4-Way — Yashwanth excluded', 'user_saikumar', '2026-11-11 16:01:00+00'),
-
--- D. Excluded Personal Items
-  ('exp_19', 'cycle_1_nov_2026', 'Movie Ticket', 250.00, 'Personal', true, 'excluded', '["user_yashwanth"]'::jsonb, 'Excluded from room pool', 'user_yashwanth', '2026-11-09 20:00:00+00'),
-  ('exp_20', 'cycle_1_nov_2026', 'Chips', 20.00, 'Personal', true, 'excluded', '["user_goutham"]'::jsonb, 'Excluded from room pool', 'user_goutham', '2026-11-09 21:00:00+00'),
-  ('exp_21', 'cycle_1_nov_2026', 'Personal Item (90)', 90.00, 'Personal', true, 'excluded', '["user_puri"]'::jsonb, 'Excluded from room pool', 'user_puri', '2026-11-10 09:00:00+00');
+  ('exp_24b', 'cycle_1_nov_2026', 'Rice Bag (4-Way Shared)', 650.00, 'Grocery', false, 'equal', '["user_goutham", "user_saikumar", "user_santhosh", "user_puri"]'::jsonb, '4-Way — Yashwanth excluded', 'user_saikumar', '2026-11-11 16:01:00+00');
 
 -- E. Payments (Vendor Bills + Paid to Admin Treasury)
 insert into public.payments (id, cycle_id, payer_id, amount, payment_type, recipient_admin_id, linked_expense_id, vendor_name, notes, payment_date) values

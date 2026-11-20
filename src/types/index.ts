@@ -1,7 +1,7 @@
-export type SplitMode = 'equal' | 'excluded';
+export type SplitMode = 'equal';
 export type PaymentType = 'vendor' | 'admin_treasury';
 export type SettlementStatus = 'pending' | 'closed' | 'rejected';
-export type ExpenseCategory = 'Fixed' | 'Grocery' | 'Food' | 'Utilities' | 'Personal' | 'Other';
+export type ExpenseCategory = 'Fixed' | 'Grocery' | 'Food' | 'Utilities' | 'Other';
 export type CycleStatus = 'active' | 'closed';
 
 export interface Profile {
@@ -37,7 +37,7 @@ export interface Expense {
   title: string;
   amount: number;
   category: ExpenseCategory;
-  is_excluded: boolean;
+  is_excluded?: boolean;
   split_mode: SplitMode;
   participant_ids: string[];
   notes?: string;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Crown, AlertTriangle, X, Check } from 'lucide-react';
+import { Crown, AlertTriangle, X, Check, Loader2 } from 'lucide-react';
 
 interface AdminTransferModalProps {
   isOpen: boolean;
@@ -15,20 +15,33 @@ export const AdminTransferModal: React.FC<AdminTransferModalProps> = ({
   const otherProfiles = profiles.filter((p) => p.id !== activeAdmin?.id);
   const [selectedAdminId, setSelectedAdminId] = useState(otherProfiles[0]?.id || '');
   const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   if (!isOpen) return null;
 
   const targetProfile = profiles.find((p) => p.id === selectedAdminId);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedAdminId || !isConfirmed) return;
-    transferAdminRole(selectedAdminId);
-    onClose();
+    if (!selectedAdminId || !isConfirmed || isTransferring) return;
+    setIsTransferring(true);
+    try {
+      await transferAdminRole(selectedAdminId);
+      onClose();
+    } catch (err) {
+      console.error('Failed to transfer admin role:', err);
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isTransferring) onClose();
+      }}
+    >
       <div className="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -42,7 +55,8 @@ export const AdminTransferModal: React.FC<AdminTransferModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            disabled={isTransferring}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -91,16 +105,24 @@ export const AdminTransferModal: React.FC<AdminTransferModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-all"
+              disabled={isTransferring}
+              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={!isConfirmed || !selectedAdminId}
-              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all"
+              disabled={isTransferring || !isConfirmed || !selectedAdminId}
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-xs font-bold shadow-lg shadow-amber-500/20 transition-all flex items-center gap-1.5"
             >
-              Confirm Admin Transfer
+              {isTransferring ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Transferring Role...</span>
+                </>
+              ) : (
+                'Confirm Admin Transfer'
+              )}
             </button>
           </div>
         </form>

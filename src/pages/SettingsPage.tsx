@@ -15,6 +15,7 @@ import {
   KeyRound,
   LogOut,
   Phone,
+  Loader2,
 } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 
@@ -46,6 +47,17 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   } = useApp();
 
   const [resettingId, setResettingId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      await refreshData();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleAdminResetPassword = async (profileId: string, name: string) => {
     const newPwd = window.prompt(`Enter a new password (min 6 chars) for ${name}:`);
@@ -185,9 +197,13 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   onClick={() => handleAdminResetPassword(p.id, p.name)}
                   disabled={resettingId === p.id}
                   title={`Reset password for ${p.name}`}
-                  className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-amber-300 border border-slate-800 transition-colors shrink-0"
+                  className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed text-slate-400 hover:text-amber-300 border border-slate-800 transition-colors shrink-0 flex items-center justify-center"
                 >
-                  <KeyRound className="w-3.5 h-3.5" />
+                  {resettingId === p.id ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                  ) : (
+                    <KeyRound className="w-3.5 h-3.5" />
+                  )}
                 </button>
               )}
             </div>
@@ -297,11 +313,12 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 Realtime sync active across all logged-in devices.
               </span>
               <button
-                onClick={() => refreshData()}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all"
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all"
               >
-                <RefreshCcw className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Sync Now</span>
+                <RefreshCcw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
               </button>
             </>
           ) : (

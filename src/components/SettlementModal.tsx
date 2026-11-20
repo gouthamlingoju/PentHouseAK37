@@ -11,6 +11,7 @@ import {
   QrCode,
   ShieldCheck,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 interface SettlementModalProps {
@@ -43,6 +44,7 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
   const [upiRef, setUpiRef] = useState('');
   const [notes, setNotes] = useState('');
   const [showQr, setShowQr] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize fields
   useEffect(() => {
@@ -109,22 +111,34 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fromUserId || !toUserId || fromUserId === toUserId || numericAmount <= 0) return;
+    if (isSubmitting || !fromUserId || !toUserId || fromUserId === toUserId || numericAmount <= 0) return;
 
-    initiateSettlement({
-      fromUserId,
-      toUserId,
-      amount: numericAmount,
-      upiRef: upiRef.trim() || undefined,
-      notes: notes.trim() || undefined,
-    });
-    onClose();
+    setIsSubmitting(true);
+    try {
+      await initiateSettlement({
+        fromUserId,
+        toUserId,
+        amount: numericAmount,
+        upiRef: upiRef.trim() || undefined,
+        notes: notes.trim() || undefined,
+      });
+      onClose();
+    } catch (err) {
+      console.error('Failed to initiate settlement:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSubmitting) onClose();
+      }}
+    >
       <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
@@ -139,7 +153,8 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            disabled={isSubmitting}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -335,16 +350,24 @@ export const SettlementModal: React.FC<SettlementModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-all"
+              disabled={isSubmitting}
+              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={fromUserId === toUserId || numericAmount <= 0}
-              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all"
+              disabled={isSubmitting || fromUserId === toUserId || numericAmount <= 0}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2"
             >
-              Initiate Settlement Request
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Initiating Settlement...</span>
+                </>
+              ) : (
+                'Initiate Settlement Request'
+              )}
             </button>
           </div>
         </form>

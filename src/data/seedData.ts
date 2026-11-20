@@ -500,47 +500,6 @@ export const INITIAL_EXPENSES: Expense[] = [
     created_by: 'user_saikumar',
     created_at: '2026-11-11T16:01:00.000Z',
   },
-
-  // D. Excluded Personal Items (Audit Record) — 3 items = ₹360
-  {
-    id: 'exp_19',
-    cycle_id: 'cycle_1_nov_2026',
-    title: 'Movie Ticket',
-    amount: 250,
-    category: 'Personal',
-    is_excluded: true,
-    split_mode: 'excluded',
-    participant_ids: ['user_yashwanth'],
-    notes: 'Excluded from room pool',
-    created_by: 'user_yashwanth',
-    created_at: '2026-11-09T20:00:00.000Z',
-  },
-  {
-    id: 'exp_20',
-    cycle_id: 'cycle_1_nov_2026',
-    title: 'Chips',
-    amount: 20,
-    category: 'Personal',
-    is_excluded: true,
-    split_mode: 'excluded',
-    participant_ids: ['user_goutham'],
-    notes: 'Excluded from room pool',
-    created_by: 'user_goutham',
-    created_at: '2026-11-09T21:00:00.000Z',
-  },
-  {
-    id: 'exp_21',
-    cycle_id: 'cycle_1_nov_2026',
-    title: 'Personal Item (90)',
-    amount: 90,
-    category: 'Personal',
-    is_excluded: true,
-    split_mode: 'excluded',
-    participant_ids: ['user_puri'],
-    notes: 'Excluded from room pool',
-    created_by: 'user_puri',
-    created_at: '2026-11-10T09:00:00.000Z',
-  },
 ];
 
 export const INITIAL_PAYMENTS: Payment[] = [

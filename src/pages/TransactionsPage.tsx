@@ -12,27 +12,26 @@ import {
   ChevronDown,
   ChevronUp,
   Users,
-  Ban,
   ReceiptIndianRupee,
   Crown,
   Building2,
   ArrowRight,
   Wallet,
+  Loader2,
 } from 'lucide-react';
 
 interface TransactionsPageProps {
   onOpenTransactionModal: (defaultTab?: 'expense' | 'admin_transfer', expense?: Expense) => void;
 }
 
-type FeedFilter = 'all' | 'expenses' | 'admin_transfers' | 'excluded';
+type FeedFilter = 'all' | 'expenses' | 'admin_transfers';
 
 const CATEGORIES: ('All' | ExpenseCategory)[] = [
   'All',
-  'Fixed',
   'Grocery',
   'Food',
+  'Fixed',
   'Utilities',
-  'Personal',
   'Other',
 ];
 
@@ -60,6 +59,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<'All' | ExpenseCategory>('All');
   const [selectedMember, setSelectedMember] = useState<string>('All');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const getProfile = (id?: string | null) => profiles.find((p) => p.id === id);
 
@@ -100,11 +100,9 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
     return unifiedItems.filter((item) => {
       // Tab filter
       if (feedFilter === 'expenses') {
-        if (item.kind !== 'expense' || item.expense.is_excluded) return false;
+        if (item.kind !== 'expense') return false;
       } else if (feedFilter === 'admin_transfers') {
         if (item.kind !== 'admin_transfer') return false;
-      } else if (feedFilter === 'excluded') {
-        if (item.kind !== 'expense' || !item.expense.is_excluded) return false;
       }
 
       // Category filter (applies to expenses; hides non-expenses when a specific category is picked)
@@ -151,17 +149,15 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
   const summary = useMemo(() => {
     let activeExpensesTotal = 0;
     let adminTransfersTotal = 0;
-    let excludedTotal = 0;
 
     for (const item of filteredItems) {
       if (item.kind === 'expense') {
-        if (item.expense.is_excluded) excludedTotal += item.expense.amount;
-        else activeExpensesTotal += item.expense.amount;
+        activeExpensesTotal += item.expense.amount;
       } else if (item.kind === 'admin_transfer') {
         adminTransfersTotal += item.payment.amount;
       }
     }
-    return { activeExpensesTotal, adminTransfersTotal, excludedTotal };
+    return { activeExpensesTotal, adminTransfersTotal };
   }, [filteredItems]);
 
   const getCategoryBadge = (cat: ExpenseCategory) => {
@@ -174,8 +170,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
         return 'bg-amber-500/15 text-amber-300 border-amber-500/30';
       case 'Utilities':
         return 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30';
-      case 'Personal':
-        return 'bg-rose-500/15 text-rose-300 border-rose-500/30';
       default:
         return 'bg-slate-800 text-slate-300 border-slate-700';
     }
@@ -215,7 +209,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
             { id: 'all', label: 'All Transactions' },
             { id: 'expenses', label: 'Room Expenses' },
             { id: 'admin_transfers', label: 'Admin Transfers' },
-            { id: 'excluded', label: 'Personal / Excluded' },
           ] as { id: FeedFilter; label: string }[]
         ).map((pill) => (
           <button
@@ -295,11 +288,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
             {summary.adminTransfersTotal > 0 && (
               <span className="text-slate-300">
                 Admin Transfers: <strong className="text-amber-300">{formatINR(summary.adminTransfersTotal)}</strong>
-              </span>
-            )}
-            {summary.excludedTotal > 0 && (
-              <span className="text-slate-400">
-                Excluded: <strong className="text-rose-400">{formatINR(summary.excludedTotal)}</strong>
               </span>
             )}
           </div>
@@ -444,11 +432,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
             return (
               <div
                 key={exp.id}
-                className={`rounded-2xl border transition-all overflow-hidden ${
-                  exp.is_excluded
-                    ? 'bg-slate-950/60 border-slate-800/70 opacity-75'
-                    : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
-                }`}
+                className="rounded-2xl border transition-all overflow-hidden bg-slate-900/70 border-slate-800 hover:border-slate-700"
               >
                 <div
                   onClick={() => setExpandedId(isExpanded ? null : exp.id)}
@@ -463,11 +447,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                     />
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`text-sm font-bold truncate ${
-                            exp.is_excluded ? 'line-through text-slate-400' : 'text-white'
-                          }`}
-                        >
+                        <span className="text-sm font-bold truncate text-white">
                           {exp.title}
                         </span>
                         <span
@@ -477,11 +457,6 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                         >
                           {exp.category}
                         </span>
-                        {exp.is_excluded && (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-500/30">
-                            <Ban className="w-3 h-3" /> Excluded (₹0)
-                          </span>
-                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-slate-400">
@@ -494,9 +469,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                         <span>•</span>
                         <span className="inline-flex items-center gap-1">
                           <Users className="w-3 h-3 text-slate-500" />
-                          {exp.is_excluded
-                            ? 'Personal'
-                            : `${exp.participant_ids.length} of ${profiles.length} sharing`}
+                          {exp.participant_ids.length} of {profiles.length} sharing
                         </span>
                       </div>
                     </div>
@@ -505,14 +478,10 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                   {/* Amount & Chevron */}
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <div
-                        className={`text-base font-extrabold font-mono-num ${
-                          exp.is_excluded ? 'text-slate-500' : 'text-white'
-                        }`}
-                      >
+                      <div className="text-base font-extrabold font-mono-num text-white">
                         {formatINR(exp.amount)}
                       </div>
-                      {!exp.is_excluded && exp.participant_ids.length > 0 && (
+                      {exp.participant_ids.length > 0 && (
                         <div className="text-[11px] text-slate-400 font-mono-num">
                           {formatINR(exp.amount / exp.participant_ids.length)} / ea
                         </div>
@@ -587,16 +556,32 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                           <span>Edit</span>
                         </button>
                         <button
-                          onClick={(e) => {
+                          disabled={deletingId === exp.id}
+                          onClick={async (e) => {
                             e.stopPropagation();
+                            if (deletingId) return;
                             if (window.confirm(`Delete "${exp.title}"?`)) {
-                              deleteExpense(exp.id);
+                              setDeletingId(exp.id);
+                              try {
+                                await deleteExpense(exp.id);
+                              } finally {
+                                setDeletingId(null);
+                              }
                             }
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          className="px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/60 disabled:opacity-40 disabled:cursor-not-allowed text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Delete</span>
+                          {deletingId === exp.id ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Deleting...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     )}

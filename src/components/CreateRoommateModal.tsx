@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Copy,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 
 interface CreateRoommateModalProps {
@@ -305,9 +306,16 @@ export const CreateRoommateModal: React.FC<CreateRoommateModalProps> = ({ isOpen
               <button
                 type="submit"
                 disabled={loading}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-indigo-600/30 transition-all flex items-center gap-1.5"
               >
-                {loading ? 'Creating...' : 'Create Roommate'}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Creating Roommate...</span>
+                  </>
+                ) : (
+                  'Create Roommate'
+                )}
               </button>
             </div>
           </form>

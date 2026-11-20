@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatINR } from '../lib/format';
-import { Lock, AlertCircle, CheckCircle2, ArrowRight, X, Sparkles } from 'lucide-react';
+import { Lock, AlertCircle, CheckCircle2, ArrowRight, X, Sparkles, Loader2 } from 'lucide-react';
 
 interface CloseCycleModalProps {
   isOpen: boolean;
@@ -17,17 +17,31 @@ export const CloseCycleModal: React.FC<CloseCycleModalProps> = ({ isOpen, onClos
   } = useApp();
 
   const [carryForward, setCarryForward] = useState(true);
+  const [isClosing, setIsClosing] = useState(false);
   const totalUnsettled = pairwiseDebts.reduce((sum, d) => sum + d.amount, 0);
 
   if (!isOpen) return null;
 
-  const handleConfirmClose = () => {
-    closeCycle(carryForward);
-    onClose();
+  const handleConfirmClose = async () => {
+    if (isClosing) return;
+    setIsClosing(true);
+    try {
+      await closeCycle(carryForward);
+      onClose();
+    } catch (err) {
+      console.error('Failed to close cycle:', err);
+    } finally {
+      setIsClosing(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isClosing) onClose();
+      }}
+    >
       <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -41,7 +55,8 @@ export const CloseCycleModal: React.FC<CloseCycleModalProps> = ({ isOpen, onClos
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            disabled={isClosing}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -120,17 +135,28 @@ export const CloseCycleModal: React.FC<CloseCycleModalProps> = ({ isOpen, onClos
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-all"
+              disabled={isClosing}
+              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleConfirmClose}
-              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition-all flex items-center gap-1.5"
+              disabled={isClosing}
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold shadow-lg shadow-rose-600/30 transition-all flex items-center gap-1.5"
             >
-              <Lock className="w-4 h-4" />
-              <span>Lock Cycle & Initialize Next</span>
+              {isClosing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Locking Cycle...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Lock Cycle & Initialize Next</span>
+                </>
+              )}
             </button>
           </div>
         </div>

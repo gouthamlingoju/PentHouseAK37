@@ -548,8 +548,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     const splits = calculateExpenseSplits(newExpense, data.profiles);
 
-    // Automatically create the single linked vendor payment for active expenses
-    const shouldCreatePayment = !newExpense.is_excluded && Boolean(paidByUserId) && newExpense.amount > 0;
+    // Automatically create the single linked vendor payment for expenses
+    const shouldCreatePayment = Boolean(paidByUserId) && newExpense.amount > 0;
     const autoPayment: Payment | null = shouldCreatePayment
       ? {
           id: `pay_${Date.now()}`,

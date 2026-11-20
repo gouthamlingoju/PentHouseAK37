@@ -34,11 +34,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
     isCurrentUserAdmin,
   } = useApp();
 
-  const activeExpenses = cycleExpenses.filter((e) => !e.is_excluded);
-  const excludedExpenses = cycleExpenses.filter((e) => e.is_excluded);
-
-  const totalActiveExpenses = activeExpenses.reduce((sum, e) => sum + e.amount, 0);
-  const totalExcludedAmount = excludedExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalRoomExpenses = cycleExpenses.reduce((sum, e) => sum + e.amount, 0);
 
   const totalVendorPayments = cyclePayments
     .filter((p) => p.payment_type === 'vendor')
@@ -105,10 +101,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
           </div>
           <div className="min-w-0">
             <div className="text-base sm:text-xl md:text-2xl font-extrabold font-mono-num tracking-tight text-white truncate">
-              {formatINR(totalActiveExpenses)}
+              {formatINR(totalRoomExpenses)}
             </div>
             <div className="text-[11px] text-slate-400 mt-1 truncate">
-              {activeExpenses.length} active • {excludedExpenses.length} excl. ({formatINR(totalExcludedAmount, false)})
+              {cycleExpenses.length} room expenses recorded
             </div>
           </div>
         </div>
@@ -127,11 +123,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({
             </div>
             <div className="text-[11px] text-slate-400 mt-1 leading-snug">
               {isCurrentUserAdmin ? (
-                Math.abs(totalVendorPayments - totalActiveExpenses) < 0.01 ? (
+                Math.abs(totalVendorPayments - totalRoomExpenses) < 0.01 ? (
                   <span className="text-emerald-400 font-semibold">✓ 100% Reconciled</span>
                 ) : (
                   <span className="text-amber-300">
-                    Diff: {formatINR(totalVendorPayments - totalActiveExpenses)}
+                    Diff: {formatINR(totalVendorPayments - totalRoomExpenses)}
                   </span>
                 )
               ) : (

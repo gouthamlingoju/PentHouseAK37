@@ -9,18 +9,11 @@ function assert(condition: boolean, message: string) {
 
 console.log('Running PentHouse AK37 Split Engine Baseline Verification...');
 
-// 1. Verify Active Expenses & Excluded items
-const activeExpenses = INITIAL_EXPENSES.filter((e) => !e.is_excluded);
-const excludedExpenses = INITIAL_EXPENSES.filter((e) => e.is_excluded);
+// 1. Verify Active Expenses
+assert(INITIAL_EXPENSES.length === 34, `Expected 34 active expenses, got ${INITIAL_EXPENSES.length}`);
 
-assert(activeExpenses.length === 34, `Expected 34 active expenses, got ${activeExpenses.length}`);
-assert(excludedExpenses.length === 3, `Expected 3 excluded expenses, got ${excludedExpenses.length}`);
-
-const totalActive = activeExpenses.reduce((s, e) => s + e.amount, 0);
-const totalExcluded = excludedExpenses.reduce((s, e) => s + e.amount, 0);
-
+const totalActive = INITIAL_EXPENSES.reduce((s, e) => s + e.amount, 0);
 assert(totalActive === 45831, `Expected total active ₹45831, got ₹${totalActive}`);
-assert(totalExcluded === 360, `Expected total excluded ₹360, got ₹${totalExcluded}`);
 
 // 2. Verify Member Standings
 const standings = calculateMemberStandings(

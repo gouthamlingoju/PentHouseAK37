@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatINR, formatDateTime } from '../lib/format';
 import { Avatar } from './Avatar';
@@ -12,6 +12,7 @@ import {
   Handshake,
   ShieldAlert,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { PairwiseDebt } from '../types';
 
@@ -35,6 +36,35 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
   } = useApp();
 
   const getProfile = (id: string) => profiles.find((p) => p.id === id);
+
+  const [processingAction, setProcessingAction] = useState<{
+    id: string;
+    action: 'confirm' | 'reject';
+  } | null>(null);
+
+  const handleConfirm = async (id: string) => {
+    if (processingAction) return;
+    setProcessingAction({ id, action: 'confirm' });
+    try {
+      await confirmSettlement(id);
+    } catch (err) {
+      console.error('Failed to confirm settlement:', err);
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    if (processingAction) return;
+    setProcessingAction({ id, action: 'reject' });
+    try {
+      await rejectSettlement(id);
+    } catch (err) {
+      console.error('Failed to reject settlement:', err);
+    } finally {
+      setProcessingAction(null);
+    }
+  };
 
   // Privacy: Non-admin members only see dues involving themselves
   const visibleDebts = isCurrentUserAdmin
@@ -101,18 +131,38 @@ export const SettlementActionQueue: React.FC<SettlementActionQueueProps> = ({
 
                   <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => confirmSettlement(set.id)}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/25 transition-all"
+                      onClick={() => handleConfirm(set.id)}
+                      disabled={processingAction !== null}
+                      className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/25 transition-all"
                     >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Confirm & Close</span>
+                      {processingAction?.id === set.id && processingAction.action === 'confirm' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Confirming...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Confirm & Close</span>
+                        </>
+                      )}
                     </button>
                     <button
-                      onClick={() => rejectSettlement(set.id)}
-                      className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-500/40 text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all"
+                      onClick={() => handleReject(set.id)}
+                      disabled={processingAction !== null}
+                      className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-500/40 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all"
                     >
-                      <XCircle className="w-4 h-4" />
-                      <span>Decline</span>
+                      {processingAction?.id === set.id && processingAction.action === 'reject' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Declining...</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="w-4 h-4" />
+                          <span>Decline</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

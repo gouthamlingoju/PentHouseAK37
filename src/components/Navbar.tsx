@@ -8,6 +8,7 @@ import {
   UserCheck,
   LogOut,
   Wifi,
+  Loader2,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 
@@ -20,6 +21,7 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
   const {
     isLiveSupabase,
+    dataLoading,
     profiles,
     currentUser,
     switchUser,
@@ -55,9 +57,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
                 PentHouse <span className="text-indigo-400 font-medium">AK37</span>
               </h1>
               {isLiveSupabase && (
-                <span className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  <Wifi className="w-2.5 h-2.5" /> Live Sync
-                </span>
+                dataLoading ? (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                    <Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-400" />
+                    <span>Syncing...</span>
+                  </span>
+                ) : (
+                  <span className="hidden lg:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    <Wifi className="w-2.5 h-2.5" /> Live Sync
+                  </span>
+                )
               )}
             </div>
             <p className="text-[11px] text-slate-400 flex items-center gap-1 truncate">
@@ -141,6 +150,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
           )}
         </div>
       </div>
+
+      {/* Subtle sync activity bar */}
+      {dataLoading && (
+        <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-800 overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-indigo-500 via-amber-400 to-indigo-500 w-full animate-pulse" />
+        </div>
+      )}
     </header>
   );
 };

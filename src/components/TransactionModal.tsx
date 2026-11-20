@@ -10,6 +10,7 @@ import {
   ReceiptIndianRupee,
   Crown,
   ArrowRight,
+  Loader2,
 } from 'lucide-react';
 
 interface TransactionModalProps {
@@ -19,7 +20,7 @@ interface TransactionModalProps {
   defaultTab?: 'expense' | 'admin_transfer';
 }
 
-const CATEGORIES: ExpenseCategory[] = ['Fixed', 'Grocery', 'Food', 'Utilities', 'Personal', 'Other'];
+const CATEGORIES: ExpenseCategory[] = ['Grocery', 'Food', 'Fixed', 'Utilities', 'Other'];
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
@@ -45,9 +46,9 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [amountStr, setAmountStr] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('Grocery');
   const [paidById, setPaidById] = useState<string>(currentUser.id);
-  const [isExcluded, setIsExcluded] = useState(false);
   const [participantIds, setParticipantIds] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Admin Transfer fields
   const otherRoommates = useMemo(
@@ -66,7 +67,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setAmountStr(editingExpense.amount.toString());
       setCategory(editingExpense.category);
       setPaidById(editingExpense.created_by || currentUser.id);
-      setIsExcluded(editingExpense.is_excluded);
       setParticipantIds(editingExpense.participant_ids);
       setNotes(editingExpense.notes || '');
     } else {
@@ -75,7 +75,6 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setAmountStr('');
       setCategory('Grocery');
       setPaidById(currentUser.id);
-      setIsExcluded(false);
       setParticipantIds(profiles.map((p) => p.id));
       setNotes('');
 
@@ -91,7 +90,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const numericAmount = parseFloat(amountStr) || 0;
 
   const previewSplits = useMemo(() => {
-    if (txType !== 'expense' || numericAmount <= 0 || isExcluded) return [];
+    if (txType !== 'expense' || numericAmount <= 0) return [];
     const dummyExpense: Expense = {
       id: 'preview',
       cycle_id: selectedCycle?.id || 'cycle_1_nov_2026',
@@ -105,7 +104,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       created_at: new Date().toISOString(),
     };
     return calculateExpenseSplits(dummyExpense, profiles);
-  }, [txType, numericAmount, category, isExcluded, participantIds, profiles, paidById, currentUser, selectedCycle, title]);
+  }, [txType, numericAmount, category, participantIds, profiles, paidById, currentUser, selectedCycle, title]);
 
   if (!isOpen) return null;
 
@@ -124,52 +123,63 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (numericAmount <= 0 || !selectedCycle) return;
+    if (isSubmitting || numericAmount <= 0 || !selectedCycle) return;
 
-    if (txType === 'admin_transfer') {
-      const fromId = isCurrentUserAdmin ? transferFromId : currentUser.id;
-      const toAdminId = activeAdmin?.id;
-      if (!fromId || !toAdminId || fromId === toAdminId) return;
+    setIsSubmitting(true);
+    try {
+      if (txType === 'admin_transfer') {
+        const fromId = isCurrentUserAdmin ? transferFromId : currentUser.id;
+        const toAdminId = activeAdmin?.id;
+        if (!fromId || !toAdminId || fromId === toAdminId) return;
 
-      await addPayment({
+        await addPayment({
+          cycle_id: selectedCycle.id,
+          payer_id: fromId,
+          amount: numericAmount,
+          payment_type: 'admin_treasury',
+          recipient_admin_id: toAdminId,
+          vendor_name: `Admin Treasury (${activeAdmin?.name || 'Admin'})`,
+          notes: notes.trim() || 'Transfer to Admin Treasury',
+          payment_date: new Date(transferDate).toISOString(),
+        });
+        onClose();
+        return;
+      }
+
+      if (!title.trim() || participantIds.length === 0) return;
+
+      const expensePayload = {
         cycle_id: selectedCycle.id,
-        payer_id: fromId,
+        title: title.trim(),
         amount: numericAmount,
-        payment_type: 'admin_treasury',
-        recipient_admin_id: toAdminId,
-        vendor_name: `Admin Treasury (${activeAdmin?.name || 'Admin'})`,
-        notes: notes.trim() || 'Transfer to Admin Treasury',
-        payment_date: new Date(transferDate).toISOString(),
-      });
+        category,
+        is_excluded: false,
+        split_mode: 'equal' as SplitMode,
+        participant_ids: participantIds,
+        notes: notes.trim() || undefined,
+        created_by: editingExpense ? editingExpense.created_by : paidById,
+      };
+
+      if (editingExpense) {
+        await updateExpense(editingExpense.id, expensePayload);
+      } else {
+        await addExpense(expensePayload, paidById);
+      }
       onClose();
-      return;
+    } catch (err) {
+      console.error('Error submitting transaction:', err);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (!title.trim()) return;
-    if (participantIds.length === 0 && !isExcluded) return;
-
-    const expensePayload = {
-      cycle_id: selectedCycle.id,
-      title: title.trim(),
-      amount: numericAmount,
-      category,
-      is_excluded: isExcluded,
-      split_mode: (isExcluded ? 'excluded' : 'equal') as SplitMode,
-      participant_ids: isExcluded ? [paidById] : participantIds,
-      notes: notes.trim() || undefined,
-      created_by: editingExpense ? editingExpense.created_by : paidById,
-    };
-
-    if (editingExpense) {
-      await updateExpense(editingExpense.id, expensePayload);
-    } else {
-      await addExpense(expensePayload, paidById);
-    }
-    onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !isSubmitting) onClose();
+      }}
+    >
       <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
@@ -185,7 +195,8 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            disabled={isSubmitting}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -369,81 +380,60 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 </div>
               )}
 
-              {/* Excluded Personal Item Toggle */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 flex items-center justify-between">
-                <div>
-                  <span className="text-sm font-bold text-slate-200 block">Personal Item (Excluded)</span>
-                  <span className="text-xs text-slate-400">
-                    Audit record only — ₹0 impact on room pool & balances
-                  </span>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isExcluded}
-                    onChange={(e) => setIsExcluded(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
-                </label>
-              </div>
-
               {/* Participant Checkboxes (Equal Split) */}
-              {!isExcluded && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-300">
-                      Split Equally Among ({participantIds.length}/{profiles.length})
-                    </label>
-                    <div className="flex items-center gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={selectAllParticipants}
-                        className="text-indigo-400 hover:text-indigo-300"
-                      >
-                        All {profiles.length}
-                      </button>
-                      <span className="text-slate-600">|</span>
-                      <button
-                        type="button"
-                        onClick={selectFourOnly}
-                        className="text-slate-400 hover:text-slate-300"
-                      >
-                        4-Way
-                      </button>
-                    </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Split Equally Among ({participantIds.length}/{profiles.length})
+                  </label>
+                  <div className="flex items-center gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={selectAllParticipants}
+                      className="text-indigo-400 hover:text-indigo-300"
+                    >
+                      All {profiles.length}
+                    </button>
+                    <span className="text-slate-600">|</span>
+                    <button
+                      type="button"
+                      onClick={selectFourOnly}
+                      className="text-slate-400 hover:text-slate-300"
+                    >
+                      4-Way
+                    </button>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {profiles.map((p) => {
-                      const isChecked = participantIds.includes(p.id);
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => toggleParticipant(p.id)}
-                          className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {profiles.map((p) => {
+                    const isChecked = participantIds.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => toggleParticipant(p.id)}
+                        className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
+                          isChecked
+                            ? 'bg-indigo-600/20 border-indigo-500/50 text-white'
+                            : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded flex items-center justify-center border text-[10px] ${
                             isChecked
-                              ? 'bg-indigo-600/20 border-indigo-500/50 text-white'
-                              : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'
+                              ? 'bg-indigo-600 border-indigo-500 text-white'
+                              : 'border-slate-700'
                           }`}
                         >
-                          <div
-                            className={`w-4 h-4 rounded flex items-center justify-center border text-[10px] ${
-                              isChecked
-                                ? 'bg-indigo-600 border-indigo-500 text-white'
-                                : 'border-slate-700'
-                            }`}
-                          >
-                            {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
-                          </div>
-                          <span>{p.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        </div>
+                        <span>{p.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
 
               {/* Notes */}
               <div className="space-y-1">
@@ -458,7 +448,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               </div>
 
               {/* Live Share Preview */}
-              {numericAmount > 0 && !isExcluded && previewSplits.length > 0 && (
+              {numericAmount > 0 && previewSplits.length > 0 && (
                 <div className="rounded-xl border border-slate-800 bg-slate-950 p-3.5 space-y-2">
                   <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
                     <Calculator className="w-4 h-4 text-indigo-400" />
@@ -487,25 +477,52 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold transition-all"
+              disabled={isSubmitting}
+              className="px-4 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all ${
+              disabled={
+                isSubmitting ||
+                numericAmount <= 0 ||
+                (txType === 'expense' && (!title.trim() || participantIds.length === 0)) ||
+                (txType === 'admin_transfer' &&
+                  (!transferFromId ||
+                    !activeAdmin?.id ||
+                    (isCurrentUserAdmin && transferFromId === activeAdmin.id)))
+              }
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed ${
                 txType === 'admin_transfer'
                   ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-amber-500/20'
                   : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-600/30'
               }`}
             >
-              {editingExpense
-                ? 'Save Changes'
-                : txType === 'admin_transfer'
-                ? isCurrentUserAdmin
-                  ? 'Record Cash Received'
-                  : 'Log Transfer to Admin'
-                : 'Log Expense & Payment'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>
+                    {editingExpense
+                      ? 'Saving Changes...'
+                      : txType === 'admin_transfer'
+                      ? isCurrentUserAdmin
+                        ? 'Recording Cash...'
+                        : 'Logging Transfer...'
+                      : 'Logging Expense & Payment...'}
+                  </span>
+                </>
+              ) : editingExpense ? (
+                'Save Changes'
+              ) : txType === 'admin_transfer' ? (
+                isCurrentUserAdmin ? (
+                  'Record Cash Received'
+                ) : (
+                  'Log Transfer to Admin'
+                )
+              ) : (
+                'Log Expense & Payment'
+              )}
             </button>
           </div>
         </form>
