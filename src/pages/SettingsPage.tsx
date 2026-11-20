@@ -16,6 +16,8 @@ import {
   LogOut,
   Phone,
   Loader2,
+  Bell,
+  Send,
 } from 'lucide-react';
 import { Avatar } from '../components/Avatar';
 
@@ -44,10 +46,46 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
     refreshData,
     resetData,
     signOut,
+    pushSupported,
+    pushPermission,
+    isPushSubscribed,
+    togglePushSubscription,
+    showToast,
   } = useApp();
 
   const [resettingId, setResettingId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [togglingPush, setTogglingPush] = useState(false);
+  const [sendingTest, setSendingTest] = useState(false);
+
+  const handleTogglePush = async () => {
+    setTogglingPush(true);
+    try {
+      await togglePushSubscription();
+    } finally {
+      setTogglingPush(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    setSendingTest(true);
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('PentHouse AK37', {
+          body: '🔔 Test notification! Notifications are working on this device.',
+          icon: '/favicon.svg',
+        });
+        showToast('success', 'Test notification triggered!');
+      } else {
+        showToast('info', 'Please enable notifications first.');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'Failed to trigger test notification.');
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   const handleSync = async () => {
     if (isSyncing) return;
@@ -285,7 +323,114 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       </div>
 
-      {/* 4. Database & Supabase Sync Status */}
+      {/* 4. Push & Realtime Roommate Notifications */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Bell className="w-5 h-5 text-amber-400" />
+            <div>
+              <h3 className="text-base font-bold text-white">Roommate Notifications (Web Push & In-App)</h3>
+              <p className="text-xs text-slate-400">
+                Get native mobile/desktop push alerts and in-app toasts when other roommates log transactions
+              </p>
+            </div>
+          </div>
+          {isPushSubscribed ? (
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Push Active
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
+              Push Disabled
+            </span>
+          )}
+        </div>
+
+        {/* Status card */}
+        <div className="rounded-xl bg-slate-950/60 border border-slate-800 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <Smartphone className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1">
+              <p className="font-semibold text-slate-200">
+                Device Status:{' '}
+                {isPushSubscribed ? (
+                  <span className="text-emerald-400 font-bold">Subscribed for Native Push Alerts</span>
+                ) : pushPermission === 'denied' ? (
+                  <span className="text-rose-400 font-bold">Blocked by Browser Site Permissions</span>
+                ) : pushSupported ? (
+                  <span className="text-slate-400">Push supported, subscription inactive</span>
+                ) : (
+                  <span className="text-amber-400">Push API unsupported on this browser</span>
+                )}
+              </p>
+              <p className="text-slate-400 leading-relaxed">
+                When active, your device will receive native lockscreen notifications whenever an expense is added,
+                an admin transfer is logged, or a settlement is initiated/confirmed.
+              </p>
+            </div>
+          </div>
+
+          {pushPermission === 'denied' && (
+            <div className="flex items-center gap-2 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>
+                Notifications were denied. Click the site settings / lock icon in your browser URL bar to allow notifications.
+              </span>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              onClick={handleTogglePush}
+              disabled={togglingPush || !pushSupported || pushPermission === 'denied'}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm ${
+                isPushSubscribed
+                  ? 'bg-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-300 border border-rose-500/30'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {togglingPush ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : isPushSubscribed ? (
+                <>
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Disable Push on this Device</span>
+                </>
+              ) : (
+                <>
+                  <Bell className="w-3.5 h-3.5" />
+                  <span>Enable Push on this Device</span>
+                </>
+              )}
+            </button>
+
+            {isPushSubscribed && (
+              <button
+                onClick={handleSendTestPush}
+                disabled={sendingTest}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all"
+              >
+                {sendingTest ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                ) : (
+                  <Send className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                <span>Send Test Notification</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <p className="text-[11px] text-slate-400 leading-normal">
+          📱 <strong>iPhone / iPad Note:</strong> iOS Safari requires tapping the Share button and selecting{' '}
+          <em>"Add to Home Screen"</em> to enable native Web Push notifications.
+        </p>
+      </div>
+
+      {/* 5. Database & Supabase Sync Status */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">

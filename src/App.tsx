@@ -9,6 +9,7 @@ import { ProfileModal } from './components/ProfileModal';
 import { CreateRoommateModal } from './components/CreateRoommateModal';
 import { AdminTransferModal } from './components/AdminTransferModal';
 import { CloseCycleModal } from './components/CloseCycleModal';
+import { NotificationDrawer } from './components/NotificationDrawer';
 
 import { LoginPage } from './pages/LoginPage';
 import { ForcePasswordChangePage } from './pages/ForcePasswordChangePage';
@@ -37,6 +38,7 @@ function AppShell() {
   const [createRoommateModalOpen, setCreateRoommateModalOpen] = useState(false);
   const [adminTransferModalOpen, setAdminTransferModalOpen] = useState(false);
   const [closeCycleModalOpen, setCloseCycleModalOpen] = useState(false);
+  const [notificationDrawerOpen, setNotificationDrawerOpen] = useState(false);
 
   if (authLoading) {
     return (
@@ -106,6 +108,7 @@ function AppShell() {
         onOpenProfile={() => setProfileModalOpen(true)}
         onOpenAdminTransfer={() => setAdminTransferModalOpen(true)}
         onOpenCloseCycle={() => setCloseCycleModalOpen(true)}
+        onOpenNotifications={() => setNotificationDrawerOpen(true)}
       />
 
       {/* Desktop Sub-Nav & Mobile Bottom Nav */}
@@ -177,6 +180,11 @@ function AppShell() {
       <CloseCycleModal
         isOpen={closeCycleModalOpen}
         onClose={() => setCloseCycleModalOpen(false)}
+      />
+
+      <NotificationDrawer
+        isOpen={notificationDrawerOpen}
+        onClose={() => setNotificationDrawerOpen(false)}
       />
     </div>
   );

@@ -9,6 +9,7 @@ import {
   LogOut,
   Wifi,
   Loader2,
+  Bell,
 } from 'lucide-react';
 import { Avatar } from './Avatar';
 
@@ -16,9 +17,10 @@ interface NavbarProps {
   onOpenProfile: () => void;
   onOpenAdminTransfer: () => void;
   onOpenCloseCycle: () => void;
+  onOpenNotifications?: () => void;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
+export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile, onOpenNotifications }) => {
   const {
     isLiveSupabase,
     dataLoading,
@@ -31,6 +33,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
     selectCycle,
     isCurrentCycleActive,
     activeAdmin,
+    unreadNotificationCount,
   } = useApp();
 
   return (
@@ -96,8 +99,23 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenProfile }) => {
           </div>
         </div>
 
-        {/* Right: User Profile + Sign Out */}
+        {/* Right: User Profile + Notifications + Sign Out */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Notification Bell Button */}
+          <button
+            onClick={onOpenNotifications}
+            title="Roommate Transaction Notifications"
+            aria-label={`Notifications ${unreadNotificationCount > 0 ? `(${unreadNotificationCount} unread)` : ''}`}
+            className="relative p-2 rounded-xl bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 text-slate-300 hover:text-white transition-all shadow-sm flex items-center justify-center"
+          >
+            <Bell className="w-4 h-4" />
+            {unreadNotificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white font-extrabold text-[10px] flex items-center justify-center animate-pulse shadow-md shadow-rose-500/40">
+                {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={onOpenProfile}
             className="flex items-center gap-2 bg-slate-900/90 border border-slate-800 hover:border-indigo-500/50 px-2.5 py-1.5 rounded-xl transition-all shadow-sm"

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import {
   Profile,
@@ -8,6 +8,7 @@ import {
   Settlement,
   MemberStanding,
   PairwiseDebt,
+  InAppNotification,
 } from '../types';
 import {
   loadInitialData,
@@ -22,6 +23,16 @@ import {
   calculateExpenseSplits,
   round2,
 } from '../engine/splitEngine';
+import { formatINR } from '../lib/format';
+import {
+  isPushSupported,
+  getNotificationPermission,
+  registerServiceWorker,
+  subscribeUserToPush,
+  unsubscribeUserFromPush,
+  checkDevicePushSubscribed,
+  dispatchPushNotification,
+} from '../lib/pushNotifications';
 import confetti from 'canvas-confetti';
 
 interface Toast {
@@ -65,6 +76,16 @@ interface AppContextType {
   pendingApprovalsForMe: Settlement[];
   pendingInitiatedByMe: Settlement[];
   toasts: Toast[];
+
+  // Notifications & Push State
+  notifications: InAppNotification[];
+  unreadNotificationCount: number;
+  markNotificationsAsRead: () => void;
+  clearNotifications: () => void;
+  pushSupported: boolean;
+  pushPermission: NotificationPermission | 'unsupported';
+  isPushSubscribed: boolean;
+  togglePushSubscription: () => Promise<boolean>;
 
   // Auth Actions
   signIn: (usernameOrEmail: string, password: string) => Promise<{ error?: string }>;
@@ -248,26 +269,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [isLiveSupabase]);
 
-  // Load data & subscribe to Realtime when authenticated
-  useEffect(() => {
-    if (!isLiveSupabase || !supabase || !session) return;
-
-    refreshData();
-
-    const channel = supabase
-      .channel('penthouse-ak37-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refreshData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'cycles' }, () => refreshData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses' }, () => refreshData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => refreshData())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'settlements' }, () => refreshData())
-      .subscribe();
-
-    return () => {
-      supabase?.removeChannel(channel);
-    };
-  }, [isLiveSupabase, session, refreshData]);
-
   // Determine current user profile
   const currentUser = useMemo(() => {
     if (isLiveSupabase) {
@@ -283,6 +284,206 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [isLiveSupabase, session, data.profiles, data.currentUserId]);
 
   const isAuthenticated = isLiveSupabase ? Boolean(session) : true;
+
+  // In-App Notification History
+  const [notifications, setNotifications] = useState<InAppNotification[]>(() => {
+    try {
+      const stored = localStorage.getItem('ak37_notifications');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const addNotificationItem = useCallback((notif: InAppNotification) => {
+    setNotifications((prev) => {
+      const next = [notif, ...prev.filter((n) => n.id !== notif.id)].slice(0, 50);
+      try {
+        localStorage.setItem('ak37_notifications', JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+  }, []);
+
+  const markNotificationsAsRead = useCallback(() => {
+    setNotifications((prev) => {
+      const next = prev.map((n) => ({ ...n, read: true }));
+      try {
+        localStorage.setItem('ak37_notifications', JSON.stringify(next));
+      } catch (err) {
+        console.error(err);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    setNotifications([]);
+    try {
+      localStorage.removeItem('ak37_notifications');
+    } catch (err) {
+      console.error(err);
+    }
+  }, []);
+
+  const unreadNotificationCount = useMemo(() => {
+    return notifications.filter((n) => !n.read).length;
+  }, [notifications]);
+
+  // Web Push Subscription State
+  const [pushSupported] = useState<boolean>(() => isPushSupported());
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | 'unsupported'>(
+    () => getNotificationPermission()
+  );
+  const [isPushSubscribed, setIsPushSubscribed] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (currentUser.id && currentUser.id !== 'loading') {
+      registerServiceWorker().then(() => {
+        checkDevicePushSubscribed().then((subbed) => setIsPushSubscribed(subbed));
+      });
+    }
+  }, [currentUser.id]);
+
+  const togglePushSubscription = useCallback(async (): Promise<boolean> => {
+    if (!currentUser.id || currentUser.id === 'loading') return false;
+
+    if (isPushSubscribed) {
+      const success = await unsubscribeUserFromPush(currentUser.id);
+      if (success) {
+        setIsPushSubscribed(false);
+        showToast('info', 'Push notifications turned off on this device.');
+        return false;
+      }
+    } else {
+      const res = await subscribeUserToPush(currentUser.id);
+      setPushPermission(getNotificationPermission());
+      if (res.success) {
+        setIsPushSubscribed(true);
+        showToast('success', '🔔 Push notifications enabled on this device!');
+        return true;
+      } else {
+        showToast('error', res.error || 'Failed to enable push notifications');
+        return false;
+      }
+    }
+    return isPushSubscribed;
+  }, [currentUser.id, isPushSubscribed, showToast]);
+
+  // Stable references for realtime event handlers
+  const currentUserRef = useRef<Profile>(currentUser);
+  const profilesRef = useRef<Profile[]>(data.profiles);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    profilesRef.current = data.profiles;
+  }, [data.profiles]);
+
+  // Load data & subscribe to Realtime when authenticated
+  useEffect(() => {
+    if (!isLiveSupabase || !supabase || !session) return;
+
+    refreshData();
+
+    const channel = supabase
+      .channel('penthouse-ak37-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => refreshData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'cycles' }, () => refreshData())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'expenses' }, (payload) => {
+        const newExp = payload.new as any;
+        if (newExp && newExp.created_by && newExp.created_by !== currentUserRef.current?.id) {
+          const author = profilesRef.current.find((p) => p.id === newExp.created_by)?.name || 'A roommate';
+          const participants: string[] = Array.isArray(newExp.participant_ids) ? newExp.participant_ids : [];
+          const isParticipant = participants.includes(currentUserRef.current?.id);
+          const splitCount = participants.length;
+          const shareStr =
+            isParticipant && splitCount > 0
+              ? ` • Your share: ${formatINR(Number(newExp.amount) / splitCount)}`
+              : '';
+
+          showToast('info', `🔔 ${author} logged "${newExp.title}" (${formatINR(Number(newExp.amount))})${shareStr}`);
+          addNotificationItem({
+            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            type: 'expense',
+            title: `${author} logged "${newExp.title}"`,
+            message: `${formatINR(Number(newExp.amount))}${shareStr}`,
+            created_at: newExp.created_at || new Date().toISOString(),
+            read: false,
+          });
+        }
+        refreshData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'expenses' }, () => refreshData())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'expenses' }, () => refreshData())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'payments' }, (payload) => {
+        const newPay = payload.new as any;
+        if (
+          newPay &&
+          newPay.payment_type === 'admin_treasury' &&
+          newPay.payer_id !== currentUserRef.current?.id
+        ) {
+          const payer = profilesRef.current.find((p) => p.id === newPay.payer_id)?.name || 'A roommate';
+          showToast('info', `👑 ${payer} transferred ${formatINR(Number(newPay.amount))} to Admin Treasury`);
+          addNotificationItem({
+            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            type: 'admin_transfer',
+            title: `${payer} transferred to Admin Treasury`,
+            message: `${formatINR(Number(newPay.amount))} recorded`,
+            created_at: newPay.created_at || new Date().toISOString(),
+            read: false,
+          });
+        }
+        refreshData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'payments' }, () => refreshData())
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'payments' }, () => refreshData())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'settlements' }, (payload) => {
+        const newSet = payload.new as any;
+        if (newSet && newSet.to_user_id === currentUserRef.current?.id) {
+          const fromUser = profilesRef.current.find((p) => p.id === newSet.from_user_id)?.name || 'A roommate';
+          showToast('info', `🤝 ${fromUser} sent a settlement request of ${formatINR(Number(newSet.amount))} awaiting confirmation`);
+          addNotificationItem({
+            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            type: 'settlement',
+            title: `Settlement request from ${fromUser}`,
+            message: `${formatINR(Number(newSet.amount))} awaiting your digital consent`,
+            created_at: newSet.created_at || new Date().toISOString(),
+            read: false,
+          });
+        }
+        refreshData();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settlements' }, (payload) => {
+        const updatedSet = payload.new as any;
+        if (
+          updatedSet &&
+          updatedSet.status === 'closed' &&
+          (updatedSet.from_user_id === currentUserRef.current?.id || updatedSet.to_user_id === currentUserRef.current?.id) &&
+          updatedSet.confirmed_by !== currentUserRef.current?.id
+        ) {
+          showToast('success', `✅ Settlement of ${formatINR(Number(updatedSet.amount))} confirmed and closed!`);
+          addNotificationItem({
+            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            type: 'settlement',
+            title: 'Settlement Confirmed & Closed',
+            message: `${formatINR(Number(updatedSet.amount))} confirmed between roommates`,
+            created_at: new Date().toISOString(),
+            read: false,
+          });
+        }
+        refreshData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase?.removeChannel(channel);
+    };
+  }, [isLiveSupabase, session, refreshData, showToast, addNotificationItem]);
 
   // Cycles
   const activeCycle = useMemo(() => {
@@ -615,6 +816,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       await refreshData();
       showToast('success', `Logged "${newExpense.title}" (₹${newExpense.amount})`);
+
+      // Dispatch Web Push notification to other roommates
+      const authorName = currentUser.name;
+      const splitCount = newExpense.participant_ids.length;
+      const yourShare = splitCount > 0 ? ` (${splitCount}-way: ${formatINR(newExpense.amount / splitCount)} ea)` : '';
+      dispatchPushNotification({
+        title: `${authorName} logged "${newExpense.title}"`,
+        body: `Amount: ${formatINR(newExpense.amount)}${yourShare}`,
+        url: '/',
+        authorId: currentUser.id,
+        targetProfileIds: newExpense.participant_ids,
+      });
       return;
     }
 
@@ -767,6 +980,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (newPayment.payment_type === 'admin_treasury') {
       showToast('success', `Logged ₹${newPayment.amount} handed to Admin Treasury`);
+      const payerName = data.profiles.find((p) => p.id === newPayment.payer_id)?.name || currentUser.name;
+      dispatchPushNotification({
+        title: `${payerName} transferred to Admin Treasury`,
+        body: `Amount: ${formatINR(newPayment.amount)} received by Admin`,
+        url: '/',
+        authorId: currentUser.id,
+      });
     } else {
       showToast('success', `Logged vendor payment of ₹${newPayment.amount}`);
     }
@@ -852,6 +1072,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       'info',
       `Settlement of ₹${params.amount} initiated (${fromUser?.name} → ${toUser?.name}). Awaiting counterparty confirmation!`
     );
+
+    dispatchPushNotification({
+      title: `Settlement Request from ${fromUser?.name || 'Roommate'}`,
+      body: `Amount: ${formatINR(params.amount)} awaiting your digital consent`,
+      url: '/',
+      authorId: currentUser.id,
+      targetProfileIds: [params.toUserId],
+    });
   };
 
   const confirmSettlement = async (settlementId: string) => {
@@ -909,6 +1137,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {}
 
     showToast('success', `Settlement of ₹${target.amount} confirmed & locked as Closed!`);
+
+    const otherId = target.from_user_id === currentUser.id ? target.to_user_id : target.from_user_id;
+    dispatchPushNotification({
+      title: 'Settlement Confirmed & Closed',
+      body: `Two-party settlement of ${formatINR(target.amount)} confirmed by ${currentUser.name}`,
+      url: '/',
+      authorId: currentUser.id,
+      targetProfileIds: [otherId],
+    });
   };
 
   const rejectSettlement = async (settlementId: string, reason?: string) => {
@@ -1160,6 +1397,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         pendingApprovalsForMe,
         pendingInitiatedByMe,
         toasts,
+        notifications,
+        unreadNotificationCount,
+        markNotificationsAsRead,
+        clearNotifications,
+        pushSupported,
+        pushPermission,
+        isPushSubscribed,
+        togglePushSubscription,
         signIn,
         signOut,
         updatePassword,

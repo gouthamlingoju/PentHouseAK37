@@ -104,3 +104,12 @@ export interface PairwiseDebt {
   toUser: Profile;
   amount: number;
 }
+
+export interface InAppNotification {
+  id: string;
+  type: 'expense' | 'admin_transfer' | 'settlement' | 'cycle';
+  title: string;
+  message: string;
+  created_at: string;
+  read: boolean;
+}
